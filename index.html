@@ -3,33 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SwordsBattle.io | Exploration Edition</title>
+    <title>SwordsBattle.io | Stealth & Knockback</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; background: #1b5e20; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         canvas { display: block; }
-        
         #ui {
             position: absolute; top: 10px; left: 10px; color: white;
-            background: rgba(0,0,0,0.5); padding: 12px; border-radius: 12px; 
+            background: rgba(0,0,0,0.6); padding: 12px; border-radius: 12px; 
             pointer-events: none; border: 2px solid #2e7d32; z-index: 10;
         }
-
         #minimap {
             position: absolute; top: 10px; right: 10px; width: 150px; height: 150px;
-            background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 8px; z-index: 10;
+            background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.2); border-radius: 8px; z-index: 10;
         }
-
         .touch-ctrl {
-            position: absolute; border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.4);
-            display: none; user-select: none; z-index: 20;
+            position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.2); 
+            border: 2px solid rgba(255, 255, 255, 0.4); display: none; user-select: none; z-index: 20;
         }
         #joystick-base { bottom: 40px; left: 40px; width: 100px; height: 100px; }
-        #joystick-stick {
-            position: absolute; top: 25px; left: 25px; width: 50px; height: 50px;
-            background: rgba(255, 255, 255, 0.6); border-radius: 50%;
-        }
+        #joystick-stick { position: absolute; top: 25px; left: 25px; width: 50px; height: 50px; background: rgba(255, 255, 255, 0.6); border-radius: 50%; }
         #dash-btn { bottom: 130px; right: 40px; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; }
         #atk-btn { bottom: 40px; right: 40px; width: 90px; height: 90px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; background: rgba(255, 0, 0, 0.3); }
     </style>
@@ -39,6 +31,7 @@
     <div id="ui">
         <h2 style="margin:0; font-size: 18px; color: #a5d6a7;">SwordsBattle.io</h2>
         <div id="score">Kills: 0</div>
+        <div id="status" style="font-size: 12px; color: #81c784;">HIDDEN: NO</div>
     </div>
 
     <canvas id="minimap"></canvas>
@@ -54,8 +47,8 @@
         const mCanvas = document.getElementById('minimap');
         const mCtx = mCanvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const statusElement = document.getElementById('status');
 
-        // Mobile UI Elements
         const joyBase = document.getElementById('joystick-base'), joyStick = document.getElementById('joystick-stick');
         const dashBtn = document.getElementById('dash-btn'), atkBtn = document.getElementById('atk-btn');
 
@@ -68,26 +61,28 @@
         let isTouch = false;
         const joyState = { x: 0, y: 0, active: false };
 
-        // --- WORLD CONSTANTS ---
         const WORLD_SIZE = 3000; 
-        const BOT_COUNT = 15; // More bots for a bigger map
+        const BOT_COUNT = 15;
         const RADIUS = 24;
-
         const camera = { x: 0, y: 0 };
+
+        // Bushes
+        const bushes = [];
+        for(let i=0; i<25; i++) {
+            bushes.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, size: 80 + Math.random()*40 });
+        }
 
         function createEntity(x, y, color, isPlayer = false) {
             return {
                 x: x || Math.random() * WORLD_SIZE,
                 y: y || Math.random() * WORLD_SIZE,
-                radius: RADIUS,
-                color: color,
-                hp: 100, maxHp: 100,
-                speed: isPlayer ? 5 : 2.5,
-                angle: 0,
-                isPlayer: isPlayer,
+                radius: RADIUS, color: color,
+                hp: 100, maxHp: 100, speed: isPlayer ? 5 : 2.5,
+                angle: 0, isPlayer: isPlayer,
                 isAttacking: false, swingAngle: 0,
-                dashTimer: 0, dashCooldown: 0,
-                changeTimer: 0
+                dashTimer: 0, dashCooldown: 0, changeTimer: 0,
+                isHidden: false,
+                vx: 0, vy: 0 // Velocity for knockback
             };
         }
 
@@ -96,20 +91,12 @@
         const colors = ['#f44336', '#ff9800', '#9c27b0', '#ffeb3b', '#e91e63'];
         for (let i = 0; i < BOT_COUNT; i++) bots.push(createEntity(null, null, colors[i % colors.length]));
 
-        // --- INPUTS ---
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-            if (e.code === 'Space') triggerDash(player);
-        });
+        // --- Inputs ---
+        window.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Space') triggerDash(player); });
         window.addEventListener('keyup', e => keys[e.code] = false);
         window.addEventListener('mousedown', () => { if(!isTouch) triggerAttack(player); });
         window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-
-        window.addEventListener('touchstart', () => {
-            isTouch = true;
-            [joyBase, dashBtn, atkBtn].forEach(el => el.style.display = 'flex');
-        }, {once: true});
-
+        window.addEventListener('touchstart', () => { isTouch = true; [joyBase, dashBtn, atkBtn].forEach(el => el.style.display = 'flex'); }, {once: true});
         joyBase.addEventListener('touchstart', () => joyState.active = true);
         window.addEventListener('touchmove', e => {
             if (!joyState.active) return;
@@ -130,6 +117,14 @@
         function triggerDash(e) { if (e.dashCooldown <= 0) { e.dashTimer = 12; e.dashCooldown = 60; } }
         function triggerAttack(e) { if (!e.isAttacking) { e.isAttacking = true; e.swingAngle = -1.2; } }
 
+        function checkBush(e) {
+            e.isHidden = false;
+            for(let b of bushes) {
+                const dist = Math.sqrt((e.x - b.x)**2 + (e.y - b.y)**2);
+                if (dist < b.size/2) { e.isHidden = true; break; }
+            }
+        }
+
         function handleHitboxes(a, b) {
             const dx = b.x - a.x, dy = b.y - a.y, dist = Math.sqrt(dx*dx + dy*dy);
             const minGap = a.radius + b.radius;
@@ -143,15 +138,14 @@
 
         function drawEntity(e) {
             ctx.save();
-            // Translate based on camera
             ctx.translate(e.x - camera.x, e.y - camera.y);
+            ctx.globalAlpha = e.isHidden ? 0.4 : 1.0;
             
             // HP Bar
             ctx.fillStyle = '#333'; ctx.fillRect(-20, -e.radius - 12, 40, 5);
             ctx.fillStyle = e.isPlayer ? '#00e676' : '#ff5252';
             ctx.fillRect(-20, -e.radius - 12, 40 * (e.hp/e.maxHp), 5);
 
-            // Angle
             let faceAngle = e.isPlayer && !isTouch ? Math.atan2((mouse.y + camera.y) - e.y, (mouse.x + camera.x) - e.x) : e.angle;
             ctx.rotate(faceAngle);
 
@@ -159,7 +153,7 @@
             ctx.save();
             if (e.isAttacking) {
                 ctx.rotate(e.swingAngle);
-                e.swingAngle += 0.2;
+                e.swingAngle += 0.22;
                 if (e.swingAngle > 1.2) e.isAttacking = false;
             }
             ctx.shadowBlur = 10; ctx.shadowColor = e.isPlayer ? '#00e5ff' : '#ff1744';
@@ -173,6 +167,7 @@
             ctx.fillStyle = e.color; ctx.fill();
             ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
             ctx.restore();
+            ctx.globalAlpha = 1.0;
         }
 
         function update() {
@@ -180,94 +175,105 @@
             if (player.dashTimer > 0) player.dashTimer--;
             if (player.dashCooldown > 0) player.dashCooldown--;
 
-            // Player Movement
+            // Player Movement + Knockback Decay
             if (isTouch) {
-                player.x += joyState.x * pSpeed; player.y += joyState.y * pSpeed;
+                player.x += (joyState.x * pSpeed) + player.vx;
+                player.y += (joyState.y * pSpeed) + player.vy;
                 if(joyState.active) player.angle = Math.atan2(joyState.y, joyState.x);
             } else {
-                if (keys['KeyW']) player.y -= pSpeed; if (keys['KeyS']) player.y += pSpeed;
-                if (keys['KeyA']) player.x -= pSpeed; if (keys['KeyD']) player.x += pSpeed;
+                let mx = 0, my = 0;
+                if (keys['KeyW']) my = -pSpeed; if (keys['KeyS']) my = pSpeed;
+                if (keys['KeyA']) mx = -pSpeed; if (keys['KeyD']) mx = pSpeed;
+                player.x += mx + player.vx; player.y += my + player.vy;
                 player.angle = Math.atan2((mouse.y + camera.y) - player.y, (mouse.x + camera.x) - player.x);
             }
+            player.vx *= 0.85; player.vy *= 0.85; // Decay knockback
 
-            // World Boundaries
-            player.x = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, player.x));
-            player.y = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, player.y));
+            checkBush(player);
+            statusElement.innerText = `HIDDEN: ${player.isHidden ? "YES" : "NO"}`;
 
-            // Camera follow (Centered on player)
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
 
-            // Bot Update
             bots.forEach((bot, i) => {
                 const dx = player.x - bot.x, dy = player.y - bot.y, dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 300) {
+                
+                checkBush(bot);
+                
+                // AI Sight Logic
+                if (dist < 300 && !player.isHidden) {
                     bot.angle = Math.atan2(dy, dx);
                     if (dist < 80 && Math.random() < 0.05) triggerAttack(bot);
                 } else if (Date.now() > bot.changeTimer) {
                     bot.angle = Math.random() * Math.PI * 2;
                     bot.changeTimer = Date.now() + 2000;
                 }
-                bot.x += Math.cos(bot.angle) * bot.speed;
-                bot.y += Math.sin(bot.angle) * bot.speed;
+                
+                bot.x += (Math.cos(bot.angle) * bot.speed) + bot.vx;
+                bot.y += (Math.sin(bot.angle) * bot.speed) + bot.vy;
+                bot.vx *= 0.85; bot.vy *= 0.85;
+
                 bot.x = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, bot.x));
                 bot.y = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, bot.y));
 
                 handleHitboxes(player, bot);
                 for (let j = i+1; j < bots.length; j++) handleHitboxes(bots[i], bots[j]);
 
-                checkHit(player, bot); checkHit(bot, player);
+                checkCombat(player, bot); checkCombat(bot, player);
 
                 if (bot.hp <= 0) { bots[i] = createEntity(null, null, colors[Math.floor(Math.random()*colors.length)]); kills++; scoreElement.innerText = `Kills: ${kills}`; }
             });
 
             if (player.hp <= 0) { player.hp = 100; player.x = WORLD_SIZE/2; player.y = WORLD_SIZE/2; kills = 0; scoreElement.innerText = `Kills: ${kills}`; }
+            player.x = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, player.x));
+            player.y = Math.max(RADIUS, Math.min(WORLD_SIZE - RADIUS, player.y));
         }
 
-        function checkHit(attacker, target) {
+        function checkCombat(attacker, target) {
             if (!attacker.isAttacking) return;
             const sAngle = attacker.angle + attacker.swingAngle;
             const sx = attacker.x + Math.cos(sAngle) * 55, sy = attacker.y + Math.sin(sAngle) * 55;
             const dist = Math.sqrt((sx - target.x)**2 + (sy - target.y)**2);
-            if (dist < target.radius + 15) target.hp -= 1.5;
-        }
-
-        function drawMinimap() {
-            mCtx.clearRect(0,0,150,150);
-            const scale = 150 / WORLD_SIZE;
-            // Draw Player dot
-            mCtx.fillStyle = '#00e5ff';
-            mCtx.beginPath(); mCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI*2); mCtx.fill();
-            // Draw Bots
-            mCtx.fillStyle = '#ff1744';
-            bots.forEach(b => {
-                mCtx.beginPath(); mCtx.arc(b.x * scale, b.y * scale, 2, 0, Math.PI*2); mCtx.fill();
-            });
+            if (dist < target.radius + 15) {
+                target.hp -= 2;
+                // Apply Knockback
+                const kDir = Math.atan2(target.y - attacker.y, target.x - attacker.x);
+                target.vx += Math.cos(kDir) * 6;
+                target.vy += Math.sin(kDir) * 6;
+            }
         }
 
         function draw() {
             ctx.fillStyle = '#1b5e20'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(-camera.x, -camera.y);
             
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
-            
-            // Draw Map Grass Pattern
+            // Map Pattern
             ctx.fillStyle = '#4caf50';
-            for(let x=0; x < WORLD_SIZE; x += 160) {
-                for(let y=0; y < WORLD_SIZE; y += 160) {
-                    ctx.fillRect(x, y, 80, 160);
-                }
-            }
-            // Draw World Border
+            for(let x=0; x < WORLD_SIZE; x += 160) for(let y=0; y < WORLD_SIZE; y += 160) ctx.fillRect(x, y, 80, 160);
+            
+            // Draw Entities & Bushes
+            bots.forEach(drawEntity);
+            drawEntity(player);
+
+            ctx.fillStyle = 'rgba(13, 71, 16, 0.7)';
+            bushes.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.size/2, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = '#0a3d0d'; ctx.lineWidth = 4; ctx.stroke();
+            });
+
             ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 10;
             ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
             ctx.restore();
 
             update();
-            bots.forEach(drawEntity);
-            drawEntity(player);
             drawMinimap();
             requestAnimationFrame(draw);
+        }
+
+        function drawMinimap() {
+            mCtx.clearRect(0,0,150,150); const scale = 150 / WORLD_SIZE;
+            mCtx.fillStyle = '#00e5ff'; mCtx.beginPath(); mCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI*2); mCtx.fill();
+            mCtx.fillStyle = '#ff1744'; bots.forEach(b => { mCtx.beginPath(); mCtx.arc(b.x * scale, b.y * scale, 2, 0, Math.PI*2); mCtx.fill(); });
         }
 
         window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
