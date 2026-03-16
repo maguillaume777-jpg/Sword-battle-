@@ -3,23 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwordsBattle.io Clone (Offline Bots)</title>
+    <title>SwordsBattle.io | Green Arena</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background: #1a1a1a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background: #2d3436; font-family: 'Arial', sans-serif; }
         canvas { display: block; }
-        #overlay {
+        #ui {
             position: absolute; top: 20px; left: 20px; color: white;
-            background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; pointer-events: none;
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; 
+            pointer-events: none; border: 1px solid rgba(255,255,255,0.1);
         }
-        .controls { font-size: 0.8em; color: #ccc; }
+        .key { background: #444; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <h2 style="margin:0">SwordsBattle.io</h2>
+    <div id="ui">
+        <h2 style="margin:0; color: #ffeaa7;">SwordsBattle.io</h2>
         <div id="score">Kills: 0</div>
-        <div class="controls">WASD to Move | Mouse to Aim</div>
+        <div style="margin-top:5px; font-size: 0.8em;">
+            <span class="key">WASD</span> Move | <span class="key">SPACE</span> Dash | <span class="key">MOUSE</span> Aim
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -35,141 +38,177 @@
         let kills = 0;
         const mouse = { x: 0, y: 0 };
         const keys = {};
+        
+        // Game Constants
+        const BOT_COUNT = 5; // Reduced bots
+        const PLAYER_RADIUS = 22;
+        const DASH_SPEED = 15;
+        const DASH_DURATION = 10; // frames
 
-        // Player Setup
         const player = {
             x: canvas.width / 2,
             y: canvas.height / 2,
-            radius: 20,
-            color: '#00d4ff',
+            radius: PLAYER_RADIUS,
+            color: '#0984e3',
             speed: 4,
-            angle: 0
+            dashTimer: 0,
+            isDashing: false
         };
 
-        // Bot Setup
         const bots = [];
-        const botCount = 8;
-        const colors = ['#ff4757', '#2ed573', '#eccc68', '#ffa502', '#3742fa'];
+        const colors = ['#d63031', '#e17055', '#fdcb6e', '#6c5ce7'];
 
         function createBot() {
             return {
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: 20,
+                radius: PLAYER_RADIUS,
                 color: colors[Math.floor(Math.random() * colors.length)],
-                speed: 2 + Math.random() * 2,
+                speed: 2,
                 angle: Math.random() * Math.PI * 2,
-                vx: (Math.random() - 0.5) * 2,
-                vy: (Math.random() - 0.5) * 2,
+                vx: 0, vy: 0,
                 changeDirTimer: 0
             };
         }
 
-        for (let i = 0; i < botCount; i++) bots.push(createBot());
+        for (let i = 0; i < BOT_COUNT; i++) bots.push(createBot());
 
-        // Listeners
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
-        window.addEventListener('mousemove', e => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && !player.isDashing) {
+                player.isDashing = true;
+                player.dashTimer = DASH_DURATION;
+            }
         });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+        window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+
+        // Physics: Prevent circles from overlapping
+        function resolveCollision(a, b) {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = a.radius + b.radius;
+
+            if (distance < minDistance) {
+                const overlap = minDistance - distance;
+                const nx = dx / distance; // Normal X
+                const ny = dy / distance; // Normal Y
+                
+                // Push them apart equally
+                a.x -= nx * (overlap / 2);
+                a.y -= ny * (overlap / 2);
+                b.x += nx * (overlap / 2);
+                b.y += ny * (overlap / 2);
+            }
+        }
 
         function drawEntity(entity, isPlayer) {
-            // Draw Body
             ctx.save();
             ctx.translate(entity.x, entity.y);
-            
-            // Calculate angle to mouse (if player) or move direction (if bot)
             let angle = isPlayer ? Math.atan2(mouse.y - entity.y, mouse.x - entity.x) : entity.angle;
             ctx.rotate(angle);
 
-            // Draw Sword
+            // Tech Sword Design
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = isPlayer ? '#00fbff' : '#ff7675';
+            
+            // Blade (Gradient/Tech look)
             ctx.fillStyle = '#dfe6e9';
-            ctx.fillRect(20, -5, 40, 10); // The blade
-            ctx.fillStyle = '#636e72';
-            ctx.fillRect(20, -8, 5, 16);  // The guard
+            ctx.fillRect(20, -4, 45, 8); 
+            ctx.fillStyle = isPlayer ? '#00d2d3' : '#ff7675'; // Inner glow line
+            ctx.fillRect(25, -1, 35, 2);
 
-            // Draw Character
+            // Crossguard
+            ctx.fillStyle = '#2d3436';
+            ctx.fillRect(20, -12, 6, 24);
+
+            ctx.shadowBlur = 0; // Reset shadow for body
+
+            // Body
             ctx.beginPath();
             ctx.arc(0, 0, entity.radius, 0, Math.PI * 2);
             ctx.fillStyle = entity.color;
             ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 3;
             ctx.stroke();
             
             ctx.restore();
         }
 
         function update() {
-            // Player Movement
-            if (keys['KeyW'] || keys['ArrowUp']) player.y -= player.speed;
-            if (keys['KeyS'] || keys['ArrowDown']) player.y += player.speed;
-            if (keys['KeyA'] || keys['ArrowLeft']) player.x -= player.speed;
-            if (keys['KeyD'] || keys['ArrowRight']) player.x += player.speed;
+            // Player Movement & Dash
+            let currentSpeed = player.isDashing ? DASH_SPEED : player.speed;
+            
+            if (keys['KeyW']) player.y -= currentSpeed;
+            if (keys['KeyS']) player.y += currentSpeed;
+            if (keys['KeyA']) player.x -= currentSpeed;
+            if (keys['KeyD']) player.x += currentSpeed;
 
-            // Update Bots
-            bots.forEach((bot, index) => {
-                // Simple AI: Chase player if close, otherwise wander
+            if (player.isDashing) {
+                player.dashTimer--;
+                if (player.dashTimer <= 0) player.isDashing = false;
+            }
+
+            // Bot logic
+            bots.forEach((bot, i) => {
                 const dx = player.x - bot.x;
                 const dy = player.y - bot.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
 
-                if (dist < 300) {
+                if (dist < 250) {
                     bot.angle = Math.atan2(dy, dx);
                     bot.x += Math.cos(bot.angle) * bot.speed;
                     bot.y += Math.sin(bot.angle) * bot.speed;
                 } else {
                     if (Date.now() > bot.changeDirTimer) {
-                        bot.vx = (Math.random() - 0.5) * 3;
-                        bot.vy = (Math.random() - 0.5) * 3;
-                        bot.angle = Math.atan2(bot.vy, bot.vx);
+                        bot.angle = Math.random() * Math.PI * 2;
                         bot.changeDirTimer = Date.now() + 2000;
                     }
-                    bot.x += bot.vx;
-                    bot.y += bot.vy;
+                    bot.x += Math.cos(bot.angle) * bot.speed;
+                    bot.y += Math.sin(bot.angle) * bot.speed;
                 }
 
-                // Simple "Combat" (If player's sword area touches bot)
+                // Collision: Player vs Bot
+                resolveCollision(player, bot);
+
+                // Collision: Bot vs Bot
+                for (let j = i + 1; j < bots.length; j++) {
+                    resolveCollision(bots[i], bots[j]);
+                }
+
+                // Combat logic
                 const pAngle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
-                const swordX = player.x + Math.cos(pAngle) * 40;
-                const swordY = player.y + Math.sin(pAngle) * 40;
+                const swordX = player.x + Math.cos(pAngle) * 50;
+                const swordY = player.y + Math.sin(pAngle) * 50;
+                const hitDist = Math.sqrt((swordX - bot.x)**2 + (swordY - bot.y)**2);
                 
-                const swordDist = Math.sqrt((swordX - bot.x)**2 + (swordY - bot.y)**2);
-                if (swordDist < bot.radius + 5) {
-                    bots[index] = createBot(); // Respawn bot
+                if (hitDist < bot.radius + 10) {
+                    bots[i] = createBot();
                     kills++;
                     scoreElement.innerText = `Kills: ${kills}`;
                 }
-
-                // Screen Wrap for bots
-                if (bot.x < 0) bot.x = canvas.width;
-                if (bot.x > canvas.width) bot.x = 0;
-                if (bot.y < 0) bot.y = canvas.height;
-                if (bot.y > canvas.height) bot.y = 0;
             });
         }
 
-        function loop() {
-            ctx.fillStyle = '#2d3436';
+        function draw() {
+            // Grass Floor
+            ctx.fillStyle = '#2ecc71'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Grid Background
-            ctx.strokeStyle = '#353b48';
-            ctx.lineWidth = 1;
-            for(let i=0; i<canvas.width; i+=50) {
+            // Grass detail lines
+            ctx.strokeStyle = '#27ae60';
+            ctx.lineWidth = 2;
+            for(let i=0; i<canvas.width; i+=60) {
                 ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i, canvas.height); ctx.stroke();
-            }
-            for(let i=0; i<canvas.height; i+=50) {
-                ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(canvas.width, i); ctx.stroke();
             }
 
             update();
             bots.forEach(bot => drawEntity(bot, false));
             drawEntity(player, true);
 
-            requestAnimationFrame(loop);
+            requestAnimationFrame(draw);
         }
 
         window.addEventListener('resize', () => {
@@ -177,7 +216,7 @@
             canvas.height = window.innerHeight;
         });
 
-        loop();
+        draw();
     </script>
 </body>
 </html>
