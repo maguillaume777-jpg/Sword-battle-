@@ -148,7 +148,6 @@
 
         function drawEntity(e) {
             ctx.save();
-            // REMOVED camera subtraction here because it is handled by the global ctx.translate
             ctx.translate(e.x, e.y);
             
             ctx.fillStyle = '#111'; ctx.fillRect(-30, -50, 60, 8);
@@ -170,14 +169,22 @@
         function update() {
             if(!gameActive) return;
 
-            let s = player.dashTimer > 0 ? 20 : player.speed;
+            // Calculate movement speed and dash bonus
+            let currentSpeed = player.speed;
+            let dashBonus = player.dashTimer > 0 ? 12 : 0; 
+
             if (player.dashTimer > 0) player.dashTimer--;
             if (player.dashCooldown > 0) player.dashCooldown--;
 
+            // Move player if joystick is active, even while attacking or dashing
             if (joyState.active) {
-                player.x += joyState.x * s;
-                player.y += joyState.y * s;
+                player.x += joyState.x * (currentSpeed + dashBonus);
+                player.y += joyState.y * (currentSpeed + dashBonus);
                 player.angle = Math.atan2(joyState.y, joyState.x);
+            } else if (player.dashTimer > 0) {
+                // Keep moving in current facing direction if dashing without joystick input
+                player.x += Math.cos(player.angle) * dashBonus;
+                player.y += Math.sin(player.angle) * dashBonus;
             }
 
             player.x = Math.max(0, Math.min(WORLD_SIZE, player.x));
@@ -216,7 +223,7 @@
             }
 
             bots.forEach(drawEntity);
-            drawEntity(player); // Now correctly moves relative to camera
+            drawEntity(player);
 
             ctx.fillStyle = currentTheme.bush;
             bushes.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size/2, 0, Math.PI*2); ctx.fill(); });
