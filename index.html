@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SwordsBattle.io | Mortality Update</title>
+    <title>SwordsBattle.io | Authentic Style</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; background: #111; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         canvas { display: block; width: 100vw; height: 100vh; }
         
         #menu, #game-over {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.95);
+            position: absolute; inset: 0; background: rgba(0,0,0,0.6); /* Semi-transparent to see bots */
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 2000; color: white;
+            z-index: 2000; color: white; backdrop-filter: blur(4px);
         }
 
         #game-over { display: none; background: rgba(0,0,0,0.85); }
 
-        .menu-box { background: #222; padding: 30px; border-radius: 20px; border: 2px solid #444; width: 280px; text-align: center; }
-        button { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; background: #00e676; font-weight: bold; cursor: pointer; color: #000; }
+        .menu-box { background: #222; padding: 30px; border-radius: 20px; border: 2px solid #444; width: 280px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        button { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; background: #00e676; font-weight: bold; cursor: pointer; color: #000; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
         .btn-alt { background: #555; color: white; }
 
         #ui {
@@ -60,9 +61,9 @@
 
     <div id="menu">
         <div class="menu-box">
-            <h1 style="color:#00e676">SWORDS BATTLE</h1>
-            <input type="text" id="username" placeholder="Name..." style="width:85%; padding:10px; margin-bottom:10px;">
-            <select id="worldSelect" style="width:90%; padding:10px; margin-bottom:10px;">
+            <h1 style="color:#00e676; margin-top: 0;">SWORDS BATTLE</h1>
+            <input type="text" id="username" placeholder="Name..." style="width:85%; padding:10px; margin-bottom:10px; border-radius: 5px; border: 1px solid #444; background: #333; color: white;">
+            <select id="worldSelect" style="width:90%; padding:10px; margin-bottom:10px; border-radius: 5px; background: #333; color: white; border: 1px solid #444;">
                 <option value="grass">Grassy Plains</option>
                 <option value="lava">Volcanic Ember</option>
                 <option value="ocean">Deep Ocean</option>
@@ -120,11 +121,12 @@
         let h = canvas.height = window.innerHeight;
 
         let gameActive = false;
+        let menuActive = true; 
         let kills = 0;
         const joyState = { x: 0, y: 0, active: false, id: null };
 
         const WORLD_SIZE = 6000; 
-        const camera = { x: 0, y: 0, zoom: 1 };
+        const camera = { x: WORLD_SIZE/2, y: WORLD_SIZE/2, zoom: 0.8 };
         const bushes = [];
         let bots = [];
         let xpGems = [];
@@ -145,18 +147,9 @@
             tier: 1, scale: 1, isPlayer: true, kills: 0
         };
 
-        function initGame() {
-            bushes.length = 0;
-            bots.length = 0;
-            xpGems.length = 0;
-            damageTexts.length = 0;
-            kills = 0;
-            
-            player.x = WORLD_SIZE/2; player.y = WORLD_SIZE/2;
-            player.hp = 100; player.maxHp = 100; player.xp = 0; player.totalXp = 0;
-            player.tier = 1; player.scale = 1; player.radius = 30; player.nextLevel = 100;
-            player.kills = 0; player.kx = 0; player.ky = 0;
-
+        // Initialize World immediately for menu background
+        function preInitWorld() {
+            bushes.length = 0; bots.length = 0; xpGems.length = 0;
             for(let i=0; i<50; i++) {
                 let bx = Math.random()*WORLD_SIZE;
                 let by = Math.random()*WORLD_SIZE;
@@ -167,22 +160,30 @@
             for(let i=0; i<35; i++) spawnBot();
             for(let i=0; i<150; i++) spawnGem();
         }
+        preInitWorld();
 
         document.getElementById('startBtn').onclick = () => {
             player.name = document.getElementById('username').value || "Player";
             document.getElementById('ui-name').innerText = player.name;
             currentTheme = themes[document.getElementById('worldSelect').value];
-            initGame();
+            
+            player.x = WORLD_SIZE/2; player.y = WORLD_SIZE/2;
+            player.hp = 100; player.maxHp = 100; player.xp = 0; player.totalXp = 0;
+            player.tier = 1; player.scale = 1; player.radius = 30; player.nextLevel = 100;
+            player.kills = 0; kills = 0;
+
             menu.style.display = 'none';
             uiLayer.style.display = 'block';
             rightUI.style.display = 'flex';
             document.querySelectorAll('.touch-ctrl').forEach(el => el.style.display = 'flex');
             gameActive = true;
+            menuActive = false;
         };
 
         document.getElementById('respawnBtn').onclick = () => {
             gameOverScreen.style.display = 'none';
-            initGame();
+            player.hp = 100; player.xp = 0; player.tier = 1; player.scale = 1; player.radius = 30;
+            player.x = WORLD_SIZE/2; player.y = WORLD_SIZE/2;
             gameActive = true;
         };
 
@@ -192,6 +193,7 @@
             uiLayer.style.display = 'none';
             rightUI.style.display = 'none';
             document.querySelectorAll('.touch-ctrl').forEach(el => el.style.display = 'none');
+            menuActive = true;
         };
 
         function spawnBot() {
@@ -215,7 +217,7 @@
             damageTexts.push({ x, y, text, color, life: 1.0, vx: (Math.random()-0.5)*2, vy: -2 });
         }
 
-        // CONTROLS
+        // INPUTS
         joyBase.addEventListener('touchstart', (e) => { joyState.active = true; joyState.id = e.targetTouches[0].identifier; e.preventDefault(); }, {passive: false});
         window.addEventListener('touchmove', (e) => {
             if (!joyState.active) return;
@@ -260,65 +262,90 @@
         function drawEntity(e) {
             ctx.save();
             ctx.translate(e.x, e.y);
+            
+            // HP Bar
             ctx.fillStyle = '#111'; ctx.fillRect(-30 * e.scale, -50 * e.scale, 60 * e.scale, 8);
             ctx.fillStyle = e.isPlayer ? '#00e676' : '#ff1744';
             ctx.fillRect(-30 * e.scale, -50 * e.scale, (60 * e.scale) * (e.hp/e.maxHp), 8);
+            
             ctx.rotate(e.angle);
             
+            // Sword Logic (Resting vs Swinging)
             ctx.save();
-            let swingOffset = 0; 
+            let baseRestAngle = 0.8; // Side position (approx 45 degrees)
+            let swingAngle = 0;
+            
             if (e.isAttacking) {
-                swingOffset = -1.2 + (e.swingProgress * 2.4);
+                // Large swipe from -1.5 rad to 1.5 rad relative to body
+                swingAngle = -2.2 + (e.swingProgress * 4.4);
                 e.swingProgress += (0.12 / e.scale); 
                 if(e.swingProgress >= 1) { e.isAttacking = false; e.swingProgress = 0; e.hitList.clear(); }
+                ctx.rotate(swingAngle);
+            } else {
+                ctx.rotate(baseRestAngle);
             }
-            ctx.rotate(swingOffset);
-            const swordLen = 75 * e.scale;
-            ctx.fillStyle = '#5d4037'; ctx.fillRect(e.radius * 0.5, -3 * e.scale, 15 * e.scale, 6 * e.scale);
-            ctx.fillStyle = '#ffd700'; ctx.fillRect(e.radius * 0.5 + 15 * e.scale, -8 * e.scale, 5 * e.scale, 16 * e.scale);
-            ctx.fillStyle = '#eee'; ctx.beginPath();
-            ctx.moveTo(e.radius * 0.5 + 20 * e.scale, -5 * e.scale);
-            ctx.lineTo(e.radius * 0.5 + swordLen, -1 * e.scale);
-            ctx.lineTo(e.radius * 0.5 + swordLen, 1 * e.scale);
-            ctx.lineTo(e.radius * 0.5 + 20 * e.scale, 5 * e.scale);
+            
+            const swordLen = 80 * e.scale;
+            // Handle
+            ctx.fillStyle = '#222'; ctx.fillRect(e.radius * 0.4, -4 * e.scale, 18 * e.scale, 8 * e.scale);
+            // Guard
+            ctx.fillStyle = '#999'; ctx.fillRect(e.radius * 0.4 + 18 * e.scale, -12 * e.scale, 6 * e.scale, 24 * e.scale);
+            // Blade
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(e.radius * 0.4 + 24 * e.scale, -8 * e.scale);
+            ctx.lineTo(e.radius * 0.4 + swordLen, -2 * e.scale);
+            ctx.lineTo(e.radius * 0.4 + swordLen, 2 * e.scale);
+            ctx.lineTo(e.radius * 0.4 + 24 * e.scale, 8 * e.scale);
             ctx.fill();
+            // Blade Shine
+            ctx.fillStyle = '#ddd'; ctx.fillRect(e.radius * 0.4 + 24 * e.scale, 0, swordLen - (e.radius*0.4+24*e.scale), 4 * e.scale);
             ctx.restore();
             
+            // Character Body
             ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
             ctx.fillStyle = e.color; ctx.fill();
-            ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.stroke();
+            ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 4; ctx.stroke();
             ctx.restore();
         }
 
         function update() {
-            if(!gameActive) return;
-
-            // CHECK DEATH
-            if (player.hp <= 0) {
+            // Player death check
+            if (gameActive && player.hp <= 0) {
                 gameActive = false;
                 document.getElementById('final-stats').innerText = `Kills: ${kills} | Tier: ${player.tier}`;
                 gameOverScreen.style.display = 'flex';
-                return;
             }
 
-            camera.zoom = 1 / (1 + (player.tier - 1) * 0.15);
-            let moveSpeed = (player.speed - (player.tier * 0.1)) + (player.dashTimer > 0 ? 12 : 0);
-            if (player.dashTimer > 0) player.dashTimer--;
-            if (player.dashCooldown > 0) player.dashCooldown--;
+            // Movement and Zoom
+            if (gameActive) {
+                camera.zoom += ( (1 / (1 + (player.tier - 1) * 0.12)) - camera.zoom ) * 0.1;
+                camera.x += (player.x - camera.x) * 0.1;
+                camera.y += (player.y - camera.y) * 0.1;
 
-            if (joyState.active) {
-                player.x += joyState.x * moveSpeed;
-                player.y += joyState.y * moveSpeed;
-                player.angle = Math.atan2(joyState.y, joyState.x);
+                let moveSpeed = (player.speed - (player.tier * 0.1)) + (player.dashTimer > 0 ? 12 : 0);
+                if (player.dashTimer > 0) player.dashTimer--;
+                if (player.dashCooldown > 0) player.dashCooldown--;
+
+                if (joyState.active) {
+                    player.x += joyState.x * moveSpeed;
+                    player.y += joyState.y * moveSpeed;
+                    player.angle = Math.atan2(joyState.y, joyState.x);
+                }
+                player.x += player.kx; player.y += player.ky;
+                player.kx *= 0.85; player.ky *= 0.85;
+                player.x = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.x));
+                player.y = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.y));
+            } else if (menuActive) {
+                // Slowly pan camera for menu effect
+                camera.x += Math.cos(Date.now()*0.0005) * 2;
+                camera.y += Math.sin(Date.now()*0.0005) * 2;
             }
-            player.x += player.kx; player.y += player.ky;
-            player.kx *= 0.85; player.ky *= 0.85;
-            player.x = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.x));
-            player.y = Math.max(player.radius, Math.min(WORLD_SIZE - player.radius, player.y));
 
-            const allEntities = [player, ...bots];
+            const allEntities = gameActive ? [player, ...bots] : bots;
 
             allEntities.forEach(ent => {
+                // XP Logic
                 for (let i = xpGems.length - 1; i >= 0; i--) {
                     const gem = xpGems[i];
                     if (Math.hypot(ent.x - gem.x, ent.y - gem.y) < ent.radius + 15) {
@@ -329,7 +356,7 @@
                 }
                 if (ent.xp >= ent.nextLevel) {
                     ent.tier++; ent.xp -= ent.nextLevel; ent.nextLevel = Math.floor(ent.nextLevel * 1.5);
-                    ent.scale += 0.15; ent.radius = 30 * ent.scale; ent.maxHp += 40; ent.hp = ent.maxHp;
+                    ent.scale += 0.12; ent.radius = 30 * ent.scale; ent.maxHp += 40; ent.hp = ent.maxHp;
                 }
             });
 
@@ -343,7 +370,7 @@
                 if (nearest) {
                     bot.angle = Math.atan2(nearest.y - bot.y, nearest.x - bot.x);
                     bot.x += Math.cos(bot.angle) * bot.speed; bot.y += Math.sin(bot.angle) * bot.speed;
-                    if (minDist < 140 * bot.scale && !bot.isAttacking && Math.random() < 0.05) {
+                    if (minDist < 150 * bot.scale && !bot.isAttacking && Math.random() < 0.05) {
                         bot.isAttacking = true; bot.swingProgress = 0; bot.hitList.clear();
                     }
                 }
@@ -351,9 +378,10 @@
                 bot.x = Math.max(bot.radius, Math.min(WORLD_SIZE - bot.radius, bot.x));
                 bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE - bot.radius, bot.y));
 
+                // Hit Detection
                 allEntities.forEach(attacker => {
                     if (attacker === bot || !attacker.isAttacking || attacker.hitList.has(bot.id)) return;
-                    if (Math.hypot(attacker.x - bot.x, attacker.y - bot.y) < 150 * attacker.scale) {
+                    if (Math.hypot(attacker.x - bot.x, attacker.y - bot.y) < 160 * attacker.scale) {
                         let dmg = Math.floor(20 * attacker.scale);
                         bot.hp -= dmg; attacker.hitList.add(bot.id);
                         const ang = Math.atan2(bot.y - attacker.y, bot.x - attacker.x);
@@ -363,7 +391,7 @@
                     }
                 });
 
-                if (bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x - player.x, bot.y - player.y) < 130 * bot.scale) {
+                if (gameActive && bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x - player.x, bot.y - player.y) < 140 * bot.scale) {
                     let dmg = Math.floor(10 * bot.scale);
                     player.hp -= dmg; bot.hitList.add('player');
                     addDamageText(player.x, player.y, dmg, "#ff1744");
@@ -379,41 +407,48 @@
                 d.x += d.vx; d.y += d.vy; d.life -= 0.02;
                 if (d.life <= 0) damageTexts.splice(i, 1);
             }
-            camera.x = player.x; camera.y = player.y;
-            const all = [player, ...bots].sort((a, b) => b.totalXp - a.totalXp).slice(0, 5);
-            lbList.innerHTML = all.map((ent, i) => `<div class="lb-entry ${ent.isPlayer ? 'lb-me' : ''}"><span>${i+1}. ${ent.name}</span><span>${Math.floor(ent.totalXp)}</span></div>`).join('');
+
+            const allRank = [player, ...bots].sort((a, b) => b.totalXp - a.totalXp).slice(0, 5);
+            lbList.innerHTML = allRank.map((ent, i) => `<div class="lb-entry ${ent.isPlayer ? 'lb-me' : ''}"><span>${i+1}. ${ent.name}</span><span>${Math.floor(ent.totalXp)}</span></div>`).join('');
         }
 
         function draw() {
             ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
             update();
-            if(!gameActive && gameOverScreen.style.display !== 'flex') { requestAnimationFrame(draw); return; }
             
             ctx.save();
             ctx.translate(w / 2, h / 2);
             ctx.scale(camera.zoom, camera.zoom);
             ctx.translate(-camera.x, -camera.y);
+            
+            // Grid and World
             ctx.fillStyle = currentTheme.bg; ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            for(let x=0; x<WORLD_SIZE; x+=200) {
-                ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0,x); ctx.lineTo(WORLD_SIZE, x); ctx.stroke();
-            }
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 2;
+            for(let x=0; x<=WORLD_SIZE; x+=200) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke(); }
+            for(let y=0; y<=WORLD_SIZE; y+=200) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(WORLD_SIZE, y); ctx.stroke(); }
+
             ctx.fillStyle = currentTheme.gem; xpGems.forEach(g => { ctx.beginPath(); ctx.arc(g.x, g.y, g.size, 0, Math.PI*2); ctx.fill(); });
+            
             bots.forEach(drawEntity);
-            if (player.hp > 0) drawEntity(player);
+            if (gameActive && player.hp > 0) drawEntity(player);
+            
             ctx.fillStyle = currentTheme.bush;
             bushes.forEach(b => b.parts.forEach(p => { ctx.beginPath(); ctx.arc(b.x + p.ox, b.y + p.oy, p.r, 0, Math.PI*2); ctx.fill(); }));
+            
             damageTexts.forEach(d => { ctx.save(); ctx.globalAlpha = d.life; ctx.fillStyle = d.color; ctx.font = `bold ${18 + (1-d.life)*10}px Arial`; ctx.textAlign = "center"; ctx.fillText(d.text, d.x, d.y); ctx.restore(); });
+            
             ctx.strokeStyle = '#ff1744'; ctx.lineWidth = 15; ctx.strokeRect(0,0, WORLD_SIZE, WORLD_SIZE);
             ctx.restore();
 
-            miniCtx.fillStyle = '#000'; miniCtx.fillRect(0,0,160,160);
-            const s = 160 / WORLD_SIZE;
-            miniCtx.fillStyle = 'red'; bots.forEach(b => miniCtx.fillRect(b.x*s, b.y*s, 2, 2));
-            if (player.hp > 0) { miniCtx.fillStyle = '#00e676'; miniCtx.fillRect(player.x*s - 2, player.y*s - 2, 4, 4); }
-            document.getElementById('xp-display').innerText = `XP: ${Math.floor(player.xp)} / ${player.nextLevel} (Tier ${player.tier})`;
-            document.getElementById('score').innerText = "Total Kills: " + kills;
+            // UI
+            if (gameActive) {
+                miniCtx.fillStyle = '#000'; miniCtx.fillRect(0,0,160,160);
+                const s = 160 / WORLD_SIZE;
+                miniCtx.fillStyle = 'red'; bots.forEach(b => miniCtx.fillRect(b.x*s, b.y*s, 2, 2));
+                miniCtx.fillStyle = '#00e676'; miniCtx.fillRect(player.x*s - 2, player.y*s - 2, 4, 4);
+                document.getElementById('xp-display').innerText = `XP: ${Math.floor(player.xp)} / ${player.nextLevel} (Tier ${player.tier})`;
+                document.getElementById('score').innerText = "Total Kills: " + kills;
+            }
             requestAnimationFrame(draw);
         }
 
