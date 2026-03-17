@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SwordsBattle.io | Refined Combat</title>
+    <title>SwordsBattle.io | FOV & Scaling</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; background: #111; font-family: 'Segoe UI', sans-serif; touch-action: none; }
         canvas { display: block; width: 100vw; height: 100vh; }
@@ -91,7 +91,7 @@
         const joyState = { x: 0, y: 0, active: false, id: null };
 
         const WORLD_SIZE = 6000; 
-        const camera = { x: 0, y: 0 };
+        const camera = { x: 0, y: 0, zoom: 1 };
         const bushes = [];
         let bots = [];
         let xpGems = [];
@@ -208,19 +208,20 @@
             
             ctx.rotate(e.angle);
             
-            // Refined Sword Swing Animation
+            // Refined Sword Visuals
             ctx.save();
-            let swordRotation = 0.5; // Default idle position (slanted right)
+            let swordRotation = 0.5; 
             if (e.isAttacking) {
-                // Swing from -1.5 rad to 1.5 rad over the duration
                 swordRotation = -1.5 + (e.swingProgress * 3);
                 e.swingProgress += (0.08 / e.scale); 
                 if(e.swingProgress >= 1) { e.isAttacking = false; e.hitList.clear(); }
             }
             
-            ctx.translate(e.radius * 0.7, 0); 
+            // Sword length slightly increased & positioned on the side
+            ctx.translate(e.radius * 0.9, e.radius * 0.3); 
             ctx.rotate(swordRotation);
-            ctx.fillStyle = '#eee'; ctx.fillRect(0, -5, 45 * e.scale, 10);
+            ctx.fillStyle = '#eee'; 
+            ctx.fillRect(0, -5, 65 * e.scale, 12); // Slightly longer and thicker
             ctx.restore();
             
             // Body
@@ -233,7 +234,10 @@
         function update() {
             if(!gameActive) return;
 
-            let moveSpeed = (player.speed - (player.tier * 0.2)) + (player.dashTimer > 0 ? 12 : 0);
+            // FOV Scaling: as tier increases, camera.zoom decreases (showing more area)
+            camera.zoom = 1 / (1 + (player.tier - 1) * 0.15);
+
+            let moveSpeed = (player.speed - (player.tier * 0.1)) + (player.dashTimer > 0 ? 12 : 0);
             if (player.dashTimer > 0) player.dashTimer--;
             if (player.dashCooldown > 0) player.dashCooldown--;
 
@@ -273,7 +277,7 @@
                     bot.angle = Math.atan2(nearest.y - bot.y, nearest.x - bot.x);
                     bot.x += Math.cos(bot.angle) * bot.speed;
                     bot.y += Math.sin(bot.angle) * bot.speed;
-                    if (minDist < 100 * bot.scale && !bot.isAttacking && Math.random() < 0.04) {
+                    if (minDist < 120 * bot.scale && !bot.isAttacking && Math.random() < 0.04) {
                         bot.isAttacking = true; bot.swingProgress = 0; bot.hitList.clear();
                     }
                 }
@@ -284,22 +288,18 @@
 
                 allEntities.forEach(attacker => {
                     if (attacker === bot || !attacker.isAttacking || attacker.hitList.has(bot.id)) return;
-                    const range = 115 * attacker.scale;
+                    const range = 135 * attacker.scale; // Range increased slightly to match longer sword
                     const d = Math.hypot(attacker.x - bot.x, attacker.y - bot.y);
                     if (d < range) { 
                         bot.hp -= (20 * attacker.scale); 
                         attacker.hitList.add(bot.id);
                         const ang = Math.atan2(bot.y - attacker.y, bot.x - attacker.x);
                         bot.kx = Math.cos(ang) * 15; bot.ky = Math.sin(ang) * 15;
-                        
-                        // FIX: Only player gets credit for their own kills
-                        if (bot.hp <= 0 && attacker.isPlayer) {
-                            kills++;
-                        }
+                        if (bot.hp <= 0 && attacker.isPlayer) kills++;
                     }
                 });
 
-                if (bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x - player.x, bot.y - player.y) < 100 * bot.scale) {
+                if (bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x - player.x, bot.y - player.y) < 120 * bot.scale) {
                     player.hp -= 10;
                     bot.hitList.add('player');
                     const ang = Math.atan2(player.y - bot.y, player.x - bot.x);
@@ -313,8 +313,8 @@
                 }
             });
 
-            camera.x = player.x - w / 2;
-            camera.y = player.y - h / 2;
+            camera.x = player.x;
+            camera.y = player.y;
         }
 
         function draw() {
@@ -323,7 +323,11 @@
             update();
 
             ctx.save();
+            // Apply FOV/Zoom transformation
+            ctx.translate(w / 2, h / 2);
+            ctx.scale(camera.zoom, camera.zoom);
             ctx.translate(-camera.x, -camera.y);
+
             ctx.fillStyle = currentTheme.bg; ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
             
             ctx.strokeStyle = 'rgba(255,255,255,0.05)';
