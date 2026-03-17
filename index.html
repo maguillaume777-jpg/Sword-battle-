@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Sword Battle | Pro Edition</title>
+    <title>Sword Battle | Shop Fixed</title>
     <style>
         :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
         body, html { margin: 0; padding: 0; overflow: hidden; background: #111; font-family: 'Segoe UI', sans-serif; touch-action: none; position: fixed; width: 100%; height: 100%; }
@@ -11,33 +11,33 @@
         
         #menu, #game-over, #shop-menu { position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: white; backdrop-filter: blur(8px); }
         #game-over, #shop-menu { display: none; background: rgba(0,0,0,0.9); }
-        .menu-box { background: #222; padding: 30px; border-radius: 20px; border: 2px solid #444; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
         
-        /* Top Right Shop Tab */
-        #openShopBtn { position: absolute; top: 20px; right: 20px; width: 100px; padding: 10px; background: #ffd700; color: #000; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; max-height: 400px; overflow-y: auto; padding: 10px; }
-        .shop-item { background: #333; padding: 15px; border-radius: 15px; border: 2px solid #555; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; }
+        .menu-box { background: #222; padding: 25px; border-radius: 20px; border: 2px solid #444; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+        
+        /* Fixed Shop Container */
+        .shop-container { width: 90%; max-width: 400px; max-height: 80vh; background: #222; border-radius: 20px; border: 2px solid #444; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; overflow-y: auto; padding: 10px; margin-bottom: 10px; }
+        .shop-item { background: #333; padding: 10px; border-radius: 12px; border: 2px solid #555; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 120px; }
         .shop-item.owned { border-color: #00e676; }
-        .shop-item.selected { background: #444; border-color: #2196f3; transform: scale(1.05); }
-        .preview-canvas { background: rgba(0,0,0,0.2); border-radius: 8px; margin: 8px 0; }
+        .shop-item.selected { background: #444; border-color: #2196f3; box-shadow: inset 0 0 10px rgba(33, 150, 243, 0.3); }
         
-        .coin-count { color: #ffd700; font-weight: bold; font-size: 20px; margin-bottom: 10px; }
-        button { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 16px; background: #00e676; font-weight: bold; cursor: pointer; color: #000; transition: transform 0.1s; }
+        .preview-canvas { width: 60px; height: 60px; pointer-events: none; }
         
+        #openShopBtn { position: absolute; top: 20px; right: 20px; width: 80px; padding: 10px; background: #ffd700; color: #000; border-radius: 12px; font-weight: bold; border: none; cursor: pointer; z-index: 2500; }
+        .coin-count { color: #ffd700; font-weight: bold; font-size: 18px; margin: 10px 0; }
+        button { width: 90%; padding: 12px; margin: 5px 0; border-radius: 8px; border: none; font-size: 16px; background: #00e676; font-weight: bold; cursor: pointer; color: #000; }
+
         #ui { position: absolute; top: 10px; left: 10px; color: white; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 12px; pointer-events: none; z-index: 1000; display: none; }
         #right-ui { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; display: none; }
-        #minimap-container { width: 160px; height: 160px; background: rgba(0,0,0,0.6); border: 3px solid #444; border-radius: 8px; overflow: hidden; }
+        #minimap-container { width: 140px; height: 140px; background: rgba(0,0,0,0.6); border: 2px solid #444; border-radius: 8px; overflow: hidden; }
         #minimap { width: 100%; height: 100%; }
-        #leaderboard { width: 160px; background: rgba(0,0,0,0.7); border: 2px solid #444; border-radius: 8px; padding: 8px; color: white; font-size: 12px; }
-        .lb-entry { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .lb-me { color: #00e676; font-weight: bold; }
-
-        .touch-ctrl { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.3); display: none; z-index: 1500; align-items: center; justify-content: center; color: white; font-weight: bold; }
-        #joystick-base { bottom: 60px; left: 60px; width: 120px; height: 120px; }
-        #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #fff; border-radius: 50%; opacity: 0.6; pointer-events: none; }
-        #dash-btn { bottom: 180px; right: 60px; width: 70px; height: 70px; }
-        #atk-btn { bottom: 50px; right: 50px; width: 110px; height: 110px; background: rgba(255, 0, 0, 0.4); }
+        #leaderboard { width: 140px; background: rgba(0,0,0,0.7); border: 2px solid #444; border-radius: 8px; padding: 8px; color: white; font-size: 11px; }
+        
+        .touch-ctrl { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.15); border: 2px solid rgba(255, 255, 255, 0.3); display: none; z-index: 1500; align-items: center; justify-content: center; color: white; }
+        #joystick-base { bottom: 60px; left: 60px; width: 100px; height: 100px; }
+        #joystick-stick { position: absolute; top: 30px; left: 30px; width: 40px; height: 40px; background: #fff; border-radius: 50%; opacity: 0.6; }
+        #dash-btn { bottom: 160px; right: 40px; width: 60px; height: 60px; }
+        #atk-btn { bottom: 40px; right: 40px; width: 100px; height: 100px; background: rgba(255, 0, 0, 0.4); }
     </style>
 </head>
 <body>
@@ -45,7 +45,7 @@
     <div id="menu">
         <button id="openShopBtn">SHOP</button>
         <div class="menu-box">
-            <h1 style="color:#00e676; margin-top: 0; letter-spacing: 2px;">SWORD BATTLE</h1>
+            <h1 style="color:#00e676; margin: 0 0 10px 0; letter-spacing: 2px;">SWORD BATTLE</h1>
             <div class="coin-count" id="menu-coins">Coins: 0</div>
             <input type="text" id="username" placeholder="Name..." style="width:85%; padding:10px; margin-bottom:10px; border-radius: 5px; border: 1px solid #444; background: #333; color: white;">
             <select id="worldSelect" style="width:90%; padding:10px; margin-bottom:10px; border-radius: 5px; background: #333; color: white; border: 1px solid #444;">
@@ -58,11 +58,11 @@
     </div>
 
     <div id="shop-menu">
-        <div class="menu-box" style="width: 380px;">
-            <h2 style="margin:0; color:#ffd700;">SKINS SHOP</h2>
-            <div id="shop-coin-display" class="coin-count">Coins: 0</div>
+        <div class="shop-container">
+            <h2 style="margin:0; color:#ffd700; text-align:center;">SKINS</h2>
+            <div id="shop-coin-display" class="coin-count" style="text-align:center;">Coins: 0</div>
             <div class="shop-grid" id="shop-grid"></div>
-            <button id="closeShopBtn" style="background:#555; color:white;">BACK</button>
+            <button id="closeShopBtn" style="background:#555; color:white; width:100%; margin:0;">BACK</button>
         </div>
     </div>
 
@@ -82,11 +82,8 @@
     </div>
 
     <div id="right-ui">
-        <div id="minimap-container"><canvas id="minimap" width="160" height="160"></canvas></div>
-        <div id="leaderboard">
-            <div style="text-align:center; border-bottom:1px solid #555; margin-bottom:5px; padding-bottom:2px;">RANKING (COINS)</div>
-            <div id="lb-list"></div>
-        </div>
+        <div id="minimap-container"><canvas id="minimap" width="140" height="140"></canvas></div>
+        <div id="leaderboard"><div id="lb-list"></div></div>
     </div>
 
     <div id="joystick-base" class="touch-ctrl"><div id="joystick-stick"></div></div>
@@ -139,23 +136,12 @@
                 const item = document.createElement('div');
                 item.className = `shop-item ${isOwned ? 'owned' : ''} ${isSelected ? 'selected' : ''}`;
                 
-                // Create Preview Canvas
                 const pcvs = document.createElement('canvas');
-                pcvs.width = 80; pcvs.height = 80; pcvs.className = 'preview-canvas';
-                const pctx = pcvs.getContext('2d');
+                pcvs.width = 120; pcvs.height = 120; pcvs.className = 'preview-canvas';
                 
-                // Draw Preview
-                pctx.translate(40, 40);
-                // Body
-                pctx.beginPath(); pctx.arc(0, 0, 15, 0, Math.PI*2); pctx.fillStyle = s.color; pctx.fill();
-                // Sword
-                pctx.rotate(-0.5);
-                pctx.fillStyle = s.hilt; pctx.fillRect(10, -2, 8, 4);
-                pctx.fillStyle = s.sword; pctx.fillRect(18, -4, 25, 8);
-
-                item.innerHTML = `<div style="font-weight:bold; font-size:14px;">${name}</div>`;
+                item.innerHTML = `<div style="font-weight:bold; font-size:13px; color:#fff;">${name}</div>`;
                 item.appendChild(pcvs);
-                item.innerHTML += `<div style="font-size:12px">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : s.price + ' Coins'}</div>`;
+                item.innerHTML += `<div style="font-size:11px; color:#ffd700;">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : s.price + ' Coins'}</div>`;
                 
                 item.onclick = () => {
                     if (isOwned) { selectedSkinName = name; localStorage.setItem('sb_selected', name); }
@@ -166,6 +152,18 @@
                     updateShopUI();
                 };
                 grid.appendChild(item);
+
+                // Draw Skin Preview after injection
+                setTimeout(() => {
+                    const pctx = pcvs.getContext('2d');
+                    pctx.clearRect(0,0,120,120);
+                    pctx.translate(60, 60);
+                    pctx.beginPath(); pctx.arc(0, 0, 25, 0, Math.PI*2); pctx.fillStyle = s.color; pctx.fill();
+                    pctx.rotate(-0.4);
+                    pctx.fillStyle = s.hilt; pctx.fillRect(15, -4, 15, 8);
+                    pctx.fillStyle = s.sword; pctx.beginPath();
+                    pctx.moveTo(30, -10); pctx.lineTo(80, -2); pctx.lineTo(80, 2); pctx.lineTo(30, 10); pctx.fill();
+                }, 10);
             });
         }
 
@@ -241,7 +239,7 @@
         // Input
         joyBase.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; joyState.active = true; joyState.id = t.identifier; updateJoy(t); e.preventDefault(); }, {passive: false});
         window.addEventListener('touchmove', (e) => { if (!joyState.active) return; for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === joyState.id){ updateJoy(e.changedTouches[i]); e.preventDefault(); }}}, {passive: false});
-        function updateJoy(t){ const r = joyBase.getBoundingClientRect(); const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2); const dist = Math.min(60, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joyState.x = (Math.cos(a) * dist) / 60; joyState.y = (Math.sin(a) * dist) / 60; joyStick.style.transform = `translate(${joyState.x * 50}px, ${joyState.y * 50}px)`; }
+        function updateJoy(t){ const r = joyBase.getBoundingClientRect(); const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2); const dist = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joyState.x = (Math.cos(a) * dist) / 50; joyState.y = (Math.sin(a) * dist) / 50; joyStick.style.transform = `translate(${joyState.x * 30}px, ${joyState.y * 30}px)`; }
         window.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === joyState.id){ joyState.active = false; joyState.x = 0; joyState.y = 0; joyStick.style.transform = 'none'; }}});
         document.getElementById('atk-btn').addEventListener('touchstart', (e) => { e.preventDefault(); if(!player.isAttacking && gameActive) { player.isAttacking = true; player.swingProgress = 0; player.hitList.clear(); }}, {passive: false});
         document.getElementById('dash-btn').addEventListener('touchstart', (e) => { e.preventDefault(); if(player.dashCooldown <= 0 && gameActive) { player.dashTimer = 18; player.dashCooldown = 65; }}, {passive: false});
@@ -320,12 +318,8 @@
 
             bots.forEach((bot, idx) => {
                 checkStealth(bot);
-                let target = null, dMin = 600;
-                let coinTarget = null, cMin = 500;
-                
-                // Bot Prioritize Gems (Coins)
+                let target = null, dMin = 600, coinTarget = null, cMin = 500;
                 for(let g of xpGems) { let d=Math.hypot(g.x-bot.x, g.y-bot.y); if(d<cMin){ cMin=d; coinTarget=g; }}
-
                 entities.forEach(e => { if(e!==bot && !e.hidden){ let d=Math.hypot(e.x-bot.x, e.y-bot.y); if(d<dMin){ dMin=d; target=e; }} });
 
                 if (target && dMin < 250*bot.scale) {
@@ -340,7 +334,6 @@
                     bot.x += Math.cos(bot.wanderAngle) * (bot.speed * 0.6); bot.y += Math.sin(bot.wanderAngle) * (bot.speed * 0.6);
                     bot.angle = bot.wanderAngle; bot.wanderTime--;
                 }
-
                 bot.x += bot.kx; bot.y += bot.ky; bot.kx *= 0.85; bot.ky *= 0.85;
                 bot.x = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.x));
                 bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.y));
@@ -354,7 +347,6 @@
                     }
                 });
                 
-                // Bot damage balanced to match player
                 if (gameActive && bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x-player.x, bot.y-player.y) < 130*bot.scale) {
                     let dmg = Math.floor(20*bot.scale); player.hp -= dmg; bot.hitList.add('player');
                     addDamageText(player.x, player.y, dmg, "#ff1744");
@@ -366,23 +358,19 @@
 
             for (let i = damageTexts.length-1; i >= 0; i--) { damageTexts[i].y += damageTexts[i].vy; damageTexts[i].life -= 0.02; if(damageTexts[i].life <= 0) damageTexts.splice(i, 1); }
             const ranked = [player, ...bots].sort((a,b)=>b.totalXp - a.totalXp).slice(0, 5);
-            lbList.innerHTML = ranked.map((e,i)=>`<div class="lb-entry ${e.isPlayer?'lb-me':''}"><span>${i+1}. ${e.name}</span><span>${Math.floor(e.totalXp)}</span></div>`).join('');
+            lbList.innerHTML = ranked.map((e,i)=>`<div style="display:flex; justify-content:space-between; margin-bottom:2px; ${e.isPlayer?'color:#00e676;font-weight:bold;':''}"><span>${i+1}. ${e.name}</span><span>${Math.floor(e.totalXp)}</span></div>`).join('');
         }
 
         function draw() {
             ctx.fillStyle = '#111'; ctx.fillRect(0,0,w,h);
             update();
             ctx.save(); ctx.translate(w/2, h/2); ctx.scale(camera.zoom, camera.zoom); ctx.translate(-camera.x, -camera.y);
-            
-            // Advanced Biome Backgrounds
             ctx.fillStyle = currentTheme.bg; ctx.fillRect(0,0,WORLD_SIZE, WORLD_SIZE);
             
             const time = Date.now() * 0.002;
-            ctx.save();
             if(document.getElementById('worldSelect').value === 'lava') {
                 for(let x=0; x<WORLD_SIZE; x+=300) for(let y=0; y<WORLD_SIZE; y+=300) {
-                    ctx.fillStyle = `rgba(255, 69, 0, ${0.1 + Math.sin(time + (x+y)*0.01)*0.05})`;
-                    ctx.fillRect(x, y, 200, 200);
+                    ctx.fillStyle = `rgba(255, 69, 0, ${0.1 + Math.sin(time + (x+y)*0.01)*0.05})`; ctx.fillRect(x, y, 200, 200);
                 }
             } else if(document.getElementById('worldSelect').value === 'ocean') {
                 for(let x=0; x<WORLD_SIZE; x+=400) for(let y=0; y<WORLD_SIZE; y+=400) {
@@ -393,7 +381,6 @@
                 ctx.fillStyle = currentTheme.sec;
                 for(let x=0; x<WORLD_SIZE; x+=100) for(let y=0; y<WORLD_SIZE; y+=100) if((x+y)%300 === 0) ctx.fillRect(x, y, 40, 40);
             }
-            ctx.restore();
 
             ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 2;
             for(let x=0; x<=WORLD_SIZE; x+=200) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_SIZE); ctx.stroke(); }
@@ -416,8 +403,8 @@
             ctx.restore();
             
             if (gameActive) {
-                miniCtx.fillStyle = '#000'; miniCtx.fillRect(0,0,160,160);
-                const s = 160 / WORLD_SIZE;
+                miniCtx.fillStyle = '#000'; miniCtx.fillRect(0,0,140,140);
+                const s = 140 / WORLD_SIZE;
                 miniCtx.fillStyle = 'red'; bots.forEach(b => { if(!b.hidden) miniCtx.fillRect(b.x*s, b.y*s, 2, 2); });
                 miniCtx.fillStyle = '#00e676'; miniCtx.fillRect(player.x*s-2, player.y*s-2, 4, 4);
                 document.getElementById('xp-display').innerText = `Coins: ${Math.floor(player.xp)} / ${player.nextLevel} (Tier ${player.tier})`;
