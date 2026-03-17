@@ -75,7 +75,8 @@
         const keys = {};
         const joyState = { x: 0, y: 0, active: false, id: null };
 
-        const WORLD_SIZE = 5000;
+        // IMPROVEMENT: Larger map
+        const WORLD_SIZE = 8000; 
         const camera = { x: 0, y: 0 };
         const bushes = [];
         let bots = [];
@@ -88,7 +89,7 @@
         let currentTheme = themes.grass;
 
         const player = {
-            x: 2500, y: 2500,
+            x: 4000, y: 4000,
             radius: 30, hp: 100, maxHp: 100,
             color: '#2196f3', name: "Player",
             speed: 8, angle: 0,
@@ -102,8 +103,10 @@
             document.getElementById('ui-name').innerText = player.name;
             currentTheme = themes[document.getElementById('worldSelect').value];
             
-            for(let i=0; i<40; i++) bushes.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, size: 160 });
-            for(let i=0; i<10; i++) bots.push({
+            for(let i=0; i<60; i++) bushes.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, size: 160 });
+            
+            // IMPROVEMENT: More bots (40 NPCs)
+            for(let i=0; i<40; i++) bots.push({
                 x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE,
                 radius: 30, hp: 100, maxHp: 100, color: '#f44336',
                 name: "Bot", speed: 4, angle: 0, isAttacking: false, swingAngle: 0, vx: 0, vy: 0, isPlayer: false
@@ -115,7 +118,6 @@
             gameActive = true;
         };
 
-        // --- UPDATED MULTI-TOUCH LOGIC ---
         joyBase.addEventListener('touchstart', (e) => {
             isTouch = true; 
             joyState.active = true;
@@ -141,43 +143,52 @@
         }, {passive: false});
 
         window.addEventListener('touchend', (e) => { 
-            // Only reset if the finger that was on the joystick is lifted
             let touch = Array.from(e.changedTouches).find(t => t.identifier === joyState.id);
             if(touch) {
-                joyState.active = false; 
-                joyState.x = 0; 
-                joyState.y = 0; 
-                joyStick.style.transform = 'none'; 
-                joyState.id = null;
+                joyState.active = false; joyState.x = 0; joyState.y = 0; 
+                joyStick.style.transform = 'none'; joyState.id = null;
             }
         });
 
         document.getElementById('atk-btn').addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             if(!player.isAttacking) { player.isAttacking = true; player.swingAngle = -1.2; } 
         }, {passive: false});
 
         document.getElementById('dash-btn').addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation();
+            e.preventDefault(); e.stopPropagation();
             if(player.dashCooldown <= 0) { player.dashTimer = 15; player.dashCooldown = 60; } 
         }, {passive: false});
+
+        // IMPROVEMENT: Collision resolver
+        function resolveCollision(a, b) {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.hypot(dx, dy);
+            const minDistance = a.radius + b.radius;
+            
+            if (distance < minDistance) {
+                const overlap = minDistance - distance;
+                const angle = Math.atan2(dy, dx);
+                const moveX = Math.cos(angle) * overlap / 2;
+                const moveY = Math.sin(angle) * overlap / 2;
+                
+                a.x -= moveX; a.y -= moveY;
+                b.x += moveX; b.y += moveY;
+            }
+        }
 
         function drawEntity(e) {
             ctx.save();
             ctx.translate(e.x, e.y);
-            
             ctx.fillStyle = '#111'; ctx.fillRect(-30, -50, 60, 8);
             ctx.fillStyle = e.isPlayer ? '#00e676' : '#ff1744';
             ctx.fillRect(-30, -50, 60 * (e.hp/e.maxHp), 8);
-
             ctx.rotate(e.angle);
             ctx.save();
             if (e.isAttacking) { ctx.rotate(e.swingAngle); e.swingAngle += 0.3; if(e.swingAngle > 1.2) e.isAttacking = false; }
             ctx.fillStyle = '#eee'; ctx.fillRect(30, -5, 45, 10);
             ctx.restore();
-
             ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI * 2);
             ctx.fillStyle = e.color; ctx.fill();
             ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.stroke();
@@ -202,22 +213,34 @@
                 player.y += Math.sin(player.angle) * dashBonus;
             }
 
-            player.x = Math.max(0, Math.min(WORLD_SIZE, player.x));
-            player.y = Math.max(0, Math.min(WORLD_SIZE, player.y));
-
-            camera.x = player.x - w / 2;
-            camera.y = player.y - h / 2;
-
+            // IMPROVEMENT: Hitbox collisions between player and bots
             bots.forEach(bot => {
+                resolveCollision(player, bot);
+                
                 const d = Math.hypot(player.x - bot.x, player.y - bot.y);
                 if (d < 400) {
                     bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
                     bot.x += Math.cos(bot.angle) * bot.speed;
                     bot.y += Math.sin(bot.angle) * bot.speed;
                 }
+                
+                // Bot-to-bot collision
+                bots.forEach(otherBot => {
+                    if(bot !== otherBot) resolveCollision(bot, otherBot);
+                });
+
                 if (player.isAttacking && d < 100) bot.hp -= 2;
-                if (bot.hp <= 0) { bot.x = Math.random()*WORLD_SIZE; bot.y = Math.random()*WORLD_SIZE; bot.hp = 100; kills++; }
+                if (bot.hp <= 0) { 
+                    bot.x = Math.random()*WORLD_SIZE; 
+                    bot.y = Math.random()*WORLD_SIZE; 
+                    bot.hp = 100; kills++; 
+                }
             });
+
+            player.x = Math.max(0, Math.min(WORLD_SIZE, player.x));
+            player.y = Math.max(0, Math.min(WORLD_SIZE, player.y));
+            camera.x = player.x - w / 2;
+            camera.y = player.y - h / 2;
             document.getElementById('score').innerText = "Kills: " + kills;
         }
 
@@ -228,7 +251,6 @@
 
             ctx.save();
             ctx.translate(-camera.x, -camera.y);
-            
             ctx.fillStyle = currentTheme.bg; ctx.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
             ctx.fillStyle = currentTheme.alt;
             for(let x=0; x<WORLD_SIZE; x+=200) {
@@ -236,13 +258,10 @@
                     if((x+y)%400==0) ctx.fillRect(x,y,100,100);
                 }
             }
-
             bots.forEach(drawEntity);
             drawEntity(player);
-
             ctx.fillStyle = currentTheme.bush;
             bushes.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, b.size/2, 0, Math.PI*2); ctx.fill(); });
-            
             ctx.restore();
             requestAnimationFrame(draw);
         }
