@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SwordsBattle.io | Stealth & Movement Update</title>
+    <title>SwordsBattle.io | Original Animation Style</title>
     <style>
         :root { --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
         body, html { 
@@ -120,7 +120,7 @@
             bushes.length = 0; bots.length = 0; xpGems.length = 0;
             for(let i=0; i<60; i++) {
                 let bx = Math.random()*WORLD_SIZE, by = Math.random()*WORLD_SIZE, parts = [];
-                let clusterSize = 5 + Math.random()*8; // Much larger bush variants
+                let clusterSize = 5 + Math.random()*8;
                 for(let p=0; p<clusterSize; p++) parts.push({ ox: (Math.random()-0.5)*150, oy: (Math.random()-0.5)*150, r: 60 + Math.random()*70 });
                 bushes.push({ x: bx, y: by, parts: parts });
             }
@@ -163,7 +163,6 @@
         function spawnGem(x, y, value) { xpGems.push({ x: x || Math.random()*WORLD_SIZE, y: y || Math.random()*WORLD_SIZE, val: value || 15, size: 5 + Math.random()*5 }); }
         function addDamageText(x, y, text, color) { damageTexts.push({ x, y, text, color, life: 1.0, vx: (Math.random()-0.5)*2, vy: -2 }); }
 
-        // INPUT FIX: Targeted listener for joystick only
         joyBase.addEventListener('touchstart', (e) => { 
             const touch = e.changedTouches[0];
             joyState.active = true; joyState.id = touch.identifier; 
@@ -222,9 +221,8 @@
 
         function drawBody(e, x, y) {
             ctx.save(); ctx.translate(x, y);
-            if(e.hidden) ctx.globalAlpha = 0.35; // Visually fade when in bush
+            if(e.hidden) ctx.globalAlpha = 0.35;
 
-            // Health Bar - Hidden if in bush
             if(!e.hidden || (e.isPlayer)) {
                 const barW = 60 * e.scale;
                 ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-barW/2 - 2, -62 * e.scale, barW + 4, 12 * e.scale);
@@ -234,21 +232,32 @@
             
             ctx.rotate(e.angle);
             ctx.save();
-            let restAngle = 0.8;
-            if (e.isAttacking) {
-                let currentSwing = restAngle - (e.swingProgress * 4.5);
-                ctx.rotate(currentSwing);
-                e.swingProgress += (0.12 / e.scale); 
-                if(e.swingProgress >= 1) { e.isAttacking = false; e.swingProgress = 0; e.hitList.clear(); }
-            } else { ctx.rotate(restAngle); }
             
+            // PIVOTED SWORD ANIMATION (ORIGINAL SWORDBATTLE.IO STYLE)
+            // Pivot the sword from a point on the circle's edge
             const s = e.scale;
-            ctx.fillStyle = '#222'; ctx.fillRect(e.radius*0.4, -4*s, 18*s, 8*s); 
-            ctx.fillStyle = '#999'; ctx.fillRect(e.radius*0.4+18*s, -12*s, 6*s, 24*s); 
-            ctx.fillStyle = '#fff'; ctx.beginPath(); 
-            ctx.moveTo(e.radius*0.4+24*s, -8*s); ctx.lineTo(e.radius*0.4+80*s, -2*s); ctx.lineTo(e.radius*0.4+80*s, 2*s); ctx.lineTo(e.radius*0.4+24*s, 8*s); ctx.fill();
+            const pivotX = e.radius * 0.7; // Side of the character
+            const pivotY = 0;
+            ctx.translate(pivotX, pivotY);
+
+            let swingAngle = 0.5; // Idle angle (tilted slightly forward)
+            if (e.isAttacking) {
+                // Circular arc from roughly 45deg to -135deg
+                swingAngle = 0.8 - (e.swingProgress * 3.5); 
+                e.swingProgress += (0.16 / e.scale); 
+                if(e.swingProgress >= 1) { e.isAttacking = false; e.swingProgress = 0; e.hitList.clear(); }
+            }
+            ctx.rotate(swingAngle);
+            
+            // Draw Sword relative to the pivot
+            ctx.fillStyle = '#222'; ctx.fillRect(0, -4*s, 18*s, 8*s); // Hilt
+            ctx.fillStyle = '#999'; ctx.fillRect(18*s, -12*s, 6*s, 24*s); // Guard
+            ctx.fillStyle = '#fff'; ctx.beginPath(); // Blade
+            ctx.moveTo(24*s, -8*s); ctx.lineTo(85*s, -2*s); ctx.lineTo(85*s, 2*s); ctx.lineTo(24*s, 8*s); ctx.fill();
+            
             ctx.restore();
             
+            // Character Circle
             ctx.beginPath(); ctx.arc(0, 0, e.radius, 0, Math.PI*2); ctx.fillStyle = e.color; ctx.fill();
             ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.lineWidth = 4; ctx.stroke();
             ctx.restore();
@@ -286,27 +295,16 @@
             bots.forEach((bot, idx) => {
                 checkStealth(bot);
                 let target = null, dMin = 600;
-                entities.forEach(e => { 
-                    if(e!==bot && !e.hidden){ // Bots won't target hidden entities
-                        let d=Math.hypot(e.x-bot.x, e.y-bot.y); 
-                        if(d<dMin){ dMin=d; target=e; }
-                    } 
-                });
+                entities.forEach(e => { if(e!==bot && !e.hidden){ let d=Math.hypot(e.x-bot.x, e.y-bot.y); if(d<dMin){ dMin=d; target=e; }} });
 
                 if (target) {
                     bot.angle = Math.atan2(target.y-bot.y, target.x-bot.x);
                     bot.x += Math.cos(bot.angle)*bot.speed; bot.y += Math.sin(bot.angle)*bot.speed;
                     if (dMin < 150*bot.scale && !bot.isAttacking && Math.random()<0.05) { bot.isAttacking = true; bot.swingProgress = 0; bot.hitList.clear(); }
                 } else {
-                    // WANDER AI
-                    if(bot.wanderTime <= 0) {
-                        bot.wanderAngle = Math.random() * Math.PI * 2;
-                        bot.wanderTime = 60 + Math.random() * 120;
-                    }
-                    bot.x += Math.cos(bot.wanderAngle) * (bot.speed * 0.6);
-                    bot.y += Math.sin(bot.wanderAngle) * (bot.speed * 0.6);
-                    bot.angle = bot.wanderAngle;
-                    bot.wanderTime--;
+                    if(bot.wanderTime <= 0) { bot.wanderAngle = Math.random() * Math.PI * 2; bot.wanderTime = 60 + Math.random() * 120; }
+                    bot.x += Math.cos(bot.wanderAngle) * (bot.speed * 0.6); bot.y += Math.sin(bot.wanderAngle) * (bot.speed * 0.6);
+                    bot.angle = bot.wanderAngle; bot.wanderTime--;
                 }
 
                 bot.x += bot.kx; bot.y += bot.ky; bot.kx *= 0.85; bot.ky *= 0.85;
@@ -314,14 +312,14 @@
                 bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.y));
 
                 entities.forEach(atk => {
-                    if (atk !== bot && atk.isAttacking && !atk.hitList.has(bot.id) && Math.hypot(atk.x-bot.x, atk.y-bot.y) < 160*atk.scale) {
+                    if (atk !== bot && atk.isAttacking && !atk.hitList.has(bot.id) && Math.hypot(atk.x-bot.x, atk.y-bot.y) < 145*atk.scale) {
                         let dmg = Math.floor(20*atk.scale); bot.hp -= dmg; atk.hitList.add(bot.id);
                         bot.kx = Math.cos(Math.atan2(bot.y-atk.y, bot.x-atk.x))*18; bot.ky = Math.sin(Math.atan2(bot.y-atk.y, bot.x-atk.x))*18;
                         addDamageText(bot.x, bot.y, dmg, atk.isPlayer ? "#ffeb3b" : "#ff5252");
                         if (bot.hp <= 0) { atk.kills++; atk.xp += 100*bot.tier; if(atk.isPlayer) kills++; }
                     }
                 });
-                if (gameActive && bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x-player.x, bot.y-player.y) < 140*bot.scale) {
+                if (gameActive && bot.isAttacking && !bot.hitList.has('player') && Math.hypot(bot.x-player.x, bot.y-player.y) < 130*bot.scale) {
                     let dmg = Math.floor(10*bot.scale); player.hp -= dmg; bot.hitList.add('player');
                     addDamageText(player.x, player.y, dmg, "#ff1744");
                     player.kx = Math.cos(Math.atan2(player.y-bot.y, player.x-bot.x))*12; player.ky = Math.sin(Math.atan2(player.y-bot.y, player.x-bot.x))*12;
@@ -351,7 +349,6 @@
                 drawBody(player, player.x, player.y);
             }
             
-            // Draw Bushes on TOP of characters
             ctx.fillStyle = currentTheme.bush; 
             bushes.forEach(b => b.parts.forEach(p => { 
                 ctx.beginPath(); ctx.arc(b.x+p.ox, b.y+p.oy, p.r, 0, Math.PI*2); ctx.fill(); 
