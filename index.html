@@ -344,7 +344,7 @@
                             atk.kills++; atk.xp += 100*vic.tier; 
                             if(atk.isPlayer) {
                                 kills++;
-                                sessionCoins += 50 * vic.tier; // Direct coin reward for kill
+                                sessionCoins += 50 * vic.tier;
                                 addDamageText(vic.x, vic.y, `+${50*vic.tier} Coins`, "#ffd700");
                             }
                         }
@@ -378,7 +378,6 @@
                 bot.y = Math.max(bot.radius, Math.min(WORLD_SIZE-bot.radius, bot.y));
                 entities.forEach(other => { if(bot !== other) resolveCollision(bot, other); });
                 if (bot.hp <= 0) { 
-                    // Drops coins on ground on death
                     for(let i=0; i<3; i++) spawnGem(bot.x + (Math.random()-0.5)*100, bot.y + (Math.random()-0.5)*100, 50); 
                     bots.splice(idx, 1); spawnBot(); 
                 }
@@ -446,12 +445,32 @@
             ctx.restore();
             
             if (gameActive) {
+                // FIXED MINIMAP LOGIC
+                miniCtx.clearRect(0, 0, 150, 150); // Clear old frame
                 miniCtx.fillStyle = 'rgba(0,0,0,0.85)';
-                miniCtx.fillRect(0,0,150,150);
-                const s = 150 / WORLD_SIZE;
-                miniCtx.strokeStyle = "rgba(255,255,255,0.1)"; miniCtx.strokeRect(0,0,150,150);
-                miniCtx.fillStyle = 'red'; bots.forEach(b => { if(!b.hidden) miniCtx.fillRect(b.x*s-1, b.y*s-1, 3, 3); });
-                miniCtx.fillStyle = '#00e676'; miniCtx.fillRect(player.x*s-2, player.y*s-2, 5, 5);
+                miniCtx.fillRect(0,0,150,150); // Fill background
+                
+                const s = 150 / WORLD_SIZE; // Global scale ratio (150px / 6000px)
+                
+                // Draw map border on minimap
+                miniCtx.strokeStyle = "rgba(255,255,255,0.2)";
+                miniCtx.strokeRect(0, 0, 150, 150);
+
+                // Draw all enemies
+                miniCtx.fillStyle = '#ff1744';
+                bots.forEach(b => {
+                    if(!b.hidden) {
+                        miniCtx.beginPath();
+                        miniCtx.arc(b.x * s, b.y * s, 1.5, 0, Math.PI * 2);
+                        miniCtx.fill();
+                    }
+                });
+
+                // Draw player
+                miniCtx.fillStyle = '#00e676';
+                miniCtx.beginPath();
+                miniCtx.arc(player.x * s, player.y * s, 2.5, 0, Math.PI * 2);
+                miniCtx.fill();
                 
                 document.getElementById('xp-display').innerText = `Tier ${player.tier}: ${Math.floor(player.xp)} / ${player.nextLevel}`;
                 document.getElementById('score').innerText = "Kills: " + kills;
