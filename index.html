@@ -26,6 +26,12 @@
             border: 1px solid rgba(255,255,255,0.1); 
             width: 340px; text-align: center; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.6); 
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
         }
 
         #openShopBtn { position: absolute; top: 25px; right: 25px; padding: 12px 24px; background: var(--accent); color: #000; border-radius: 14px; font-weight: 900; border: none; cursor: pointer; z-index: 2501; }
@@ -33,27 +39,28 @@
 
         .shop-container, .settings-container { width: 90%; max-width: 600px; max-height: 85vh; background: #222; border-radius: 24px; border: 2px solid #444; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
         .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; overflow-y: auto; padding: 10px; }
-        .shop-item { background: #2a2a2a; padding: 15px; border-radius: 18px; border: 2px solid #3d3d3d; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s; }
+        .shop-item { background: #2a2a2a; padding: 15px; border-radius: 18px; border: 2px solid #3d3d3d; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; }
         .shop-item.owned { border-color: var(--primary); }
-        .shop-item.selected { border-color: #2196f3; background: #333; }
+        .shop-item.selected { background: #333; border-color: #2196f3; box-shadow: 0 0 20px rgba(33, 150, 243, 0.3); }
         
         .preview-canvas { width: 80px; height: 80px; margin: 5px 0; background: rgba(0,0,0,0.2); border-radius: 10px; }
         .coin-count { color: var(--accent); font-weight: bold; font-size: 20px; margin-bottom: 15px; }
         input, select { width: 90%; padding: 12px; margin-bottom: 12px; border-radius: 10px; border: 1px solid #444; background: #111; color: white; }
         
-        .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; background: #333; padding: 10px; border-radius: 10px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; background: #333; padding: 10px; border-radius: 10px; }
         button.main-btn { width: 95%; padding: 15px; margin-top: 10px; border-radius: 12px; border: none; font-size: 18px; background: var(--primary); font-weight: bold; cursor: pointer; color: #000; }
 
         #ui { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 15px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); display: none; z-index: 1000; }
-        #right-ui { position: absolute; top: 20px; right: 20px; display: none; flex-direction: column; gap: 10px; z-index: 1000; }
-        #minimap-container { width: 150px; height: 150px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; overflow: hidden; }
+        #right-ui { position: absolute; top: 20px; right: 20px; display: none; flex-direction: column; gap: 10px; z-index: 1000; align-items: flex-end; }
+        #leaderboard { width: 150px; background: rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px; color: white; font-size: 12px; }
+        #minimap-container { width: 150px; height: 150px; background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.2); border-radius: 12px; overflow: hidden; backdrop-filter: blur(5px); }
 
-        .touch-ctrl { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.1); display: none; z-index: 1500; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.2); }
+        .touch-ctrl { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); display: none; z-index: 1500; align-items: center; justify-content: center; }
         #joystick-base { bottom: 50px; left: 50px; width: 120px; height: 120px; }
         #joystick-stick { position: absolute; top: 35px; left: 35px; width: 50px; height: 50px; background: #fff; border-radius: 50%; opacity: 0.4; }
         #dash-btn { bottom: 170px; right: 50px; width: 70px; height: 70px; color: white; font-weight: bold; }
-        #atk-btn { bottom: 40px; right: 40px; width: 110px; height: 110px; background: rgba(255, 23, 68, 0.3); color: white; font-weight: bold; }
-        #bush-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 900; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 100%); opacity: 0; transition: 0.4s; }
+        #atk-btn { bottom: 40px; right: 40px; width: 110px; height: 110px; background: rgba(255, 23, 68, 0.3); border-color: rgba(255,23,68,0.5); color: white; font-weight: bold; }
+        #bush-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 900; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.85) 100%); opacity: 0; transition: opacity 0.4s ease; }
     </style>
 </head>
 <body>
@@ -63,15 +70,15 @@
         <button id="openSettingsBtn">SETTINGS</button>
         <button id="openShopBtn">SHOP</button>
         <div class="menu-box">
-            <h1 style="color:var(--primary); margin: 0;">SWORD BATTLE</h1>
+            <h1 style="color:var(--primary); margin: 0 0 5px 0; letter-spacing: 2px; text-transform: uppercase;">SWORD BATTLE</h1>
             <div class="coin-count" id="menu-coins">Coins: 0</div>
-            <input type="text" id="username" placeholder="Name..." maxlength="12">
+            <input type="text" id="username" placeholder="Enter Name..." maxlength="12">
             <select id="worldSelect">
                 <option value="grass">Grassy Plains</option>
                 <option value="lava">Volcanic Ember</option>
                 <option value="ocean">Deep Ocean</option>
             </select>
-            <button id="startBtn" class="main-btn">START</button>
+            <button id="startBtn" class="main-btn">BATTLE NOW</button>
         </div>
     </div>
 
@@ -87,48 +94,48 @@
                     <option value="2.5">Nightmare</option>
                 </select>
             </div>
-            <div style="border-top:1px solid #444; padding-top:15px;">
+            <div style="border-top:1px solid #444; margin:15px 0; padding-top:15px;">
                 <h3 style="margin:0 0 10px 0; font-size:14px; color:var(--accent);">REDEEM CODE</h3>
                 <div style="display:flex; gap:10px;">
-                    <input type="text" id="redeemInput" placeholder="Code..." style="margin:0;">
-                    <button id="redeemBtn" style="background:var(--accent); border:none; border-radius:10px; padding:0 15px; font-weight:bold;">REDEEM</button>
+                    <input type="text" id="redeemInput" placeholder="Enter code..." style="margin:0;">
+                    <button id="redeemBtn" style="background:var(--accent); border:none; border-radius:10px; padding:0 15px; font-weight:bold; cursor:pointer;">REDEEM</button>
                 </div>
                 <div id="redeemMsg" style="font-size:12px; margin-top:5px; height:15px;"></div>
             </div>
-            <button id="closeSettingsBtn" style="background:#444; color:white; border:none; padding:12px; border-radius:10px; margin-top:20px;">CLOSE</button>
+            <button id="closeSettingsBtn" style="background:#444; color:white; border:none; padding:12px; border-radius:10px; margin-top:auto; font-weight:bold;">CLOSE</button>
         </div>
     </div>
 
     <div id="shop-menu">
         <div class="shop-container">
-            <h2 style="color:var(--accent); text-align:center;">SHOP</h2>
-            <div id="shop-coin-display" class="coin-count" style="text-align:center;">0</div>
+            <h2 style="margin:0; color:var(--accent); text-align:center;">EQUIPMENT SHOP</h2>
+            <div id="shop-coin-display" class="coin-count" style="text-align:center;">Coins: 0</div>
             <div class="shop-grid" id="shop-grid"></div>
-            <button id="closeShopBtn" style="background:#444; color:white; border:none; padding:12px; border-radius:10px; margin-top:10px;">BACK</button>
+            <button id="closeShopBtn" style="background:#444; color:white; border:none; padding:12px; border-radius:10px; margin-top:10px; font-weight:bold;">BACK TO MENU</button>
         </div>
     </div>
 
     <div id="game-over">
         <div class="menu-box">
             <h1 style="color:#ff1744">DEFEATED</h1>
-            <p id="final-stats">Kills: 0</p>
+            <p id="final-stats">Kills: 0 | Tier: 1</p>
             <button id="respawnBtn" class="main-btn">REMATCH</button>
-            <button id="menuBtn" style="background:transparent; color:white; border:1px solid #555; padding:10px; margin-top:10px; border-radius:10px; width:95%;">HOME</button>
+            <button id="menuBtn" style="background:transparent; color:white; border:1px solid #555; width:95%; padding:12px; margin-top:10px; border-radius:10px;">HOME</button>
         </div>
     </div>
 
     <div id="ui">
-        <div id="ui-name-static" style="font-weight:900; color:var(--primary);">Player</div>
-        <div id="xp-display" style="font-size:12px; opacity:0.8;">Tier 1: 0/100</div>
-        <div style="display: flex; gap: 15px; font-size:14px;">
-            <div id="score">Kills: 0</div>
-            <div id="ingame-coins" style="color:var(--accent);">Coins: 0</div>
+        <div id="ui-name-static" style="font-weight:900; color:var(--primary); font-size: 18px;">Player</div>
+        <div id="xp-display" style="font-size:12px; opacity:0.8; margin-bottom: 5px;">Tier 1: 0 / 100</div>
+        <div style="display: flex; gap: 15px;">
+            <div id="score" style="font-size:14px; font-weight:bold; color:#fff;">Kills: 0</div>
+            <div id="ingame-coins" style="font-size:14px; font-weight:bold; color:var(--accent);">Coins: 0</div>
         </div>
     </div>
 
     <div id="right-ui">
         <div id="minimap-container"><canvas id="minimap"></canvas></div>
-        <div id="leaderboard" style="background:rgba(0,0,0,0.6); padding:10px; border-radius:12px; font-size:12px;"><div id="lb-list"></div></div>
+        <div id="leaderboard"><div id="lb-list"></div></div>
     </div>
 
     <div id="joystick-base" class="touch-ctrl"><div id="joystick-stick"></div></div>
@@ -156,6 +163,7 @@
         const WORLD_SIZE = 6000; 
         const camera = { x: WORLD_SIZE/2, y: WORLD_SIZE/2, zoom: 0.8 };
         const bushes = [], bots = [], xpGems = [], damageTexts = [], dashAfterimages = [];
+        let menuCamAngle = 0;
 
         let totalCoins = parseInt(localStorage.getItem('sb_coins')) || 0;
         let ownedSkins = JSON.parse(localStorage.getItem('sb_owned')) || ['Default'];
@@ -193,9 +201,9 @@
                 const item = document.createElement('div');
                 item.className = `shop-item ${isOwned ? 'owned' : ''} ${isSelected ? 'selected' : ''}`;
                 const pcvs = document.createElement('canvas'); pcvs.width = 80; pcvs.height = 80; pcvs.className = 'preview-canvas';
-                item.innerHTML = `<div style="font-weight:bold; font-size:12px;">${name}</div>`;
+                item.innerHTML = `<div style="font-weight:bold; font-size:14px;">${name}</div>`;
                 item.appendChild(pcvs);
-                item.innerHTML += `<div style="font-size:10px; color:var(--accent);">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : s.price}</div>`;
+                item.innerHTML += `<div style="font-size:12px; color:var(--accent); font-weight:bold;">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : s.price + ' Coins'}</div>`;
                 item.onclick = () => {
                     if (isOwned) { selectedSkinName = name; localStorage.setItem('sb_selected', name); }
                     else if (totalCoins >= s.price) { totalCoins -= s.price; ownedSkins.push(name); selectedSkinName = name; localStorage.setItem('sb_coins', totalCoins); localStorage.setItem('sb_owned', JSON.stringify(ownedSkins)); localStorage.setItem('sb_selected', name); }
@@ -205,7 +213,7 @@
                 const pctx = pcvs.getContext('2d'); pctx.save(); pctx.translate(40, 40);
                 renderSword(pctx, 15, 0, 0.6, -Math.PI/4, s.sword, s.hilt, s.type);
                 pctx.beginPath(); 
-                if(s.body === 'spiked') { for(let i=0; i<8; i++) { let a = (i/8)*Math.PI*2; pctx.lineTo(Math.cos(a)*20, Math.sin(a)*20); pctx.lineTo(Math.cos(a+0.4)*16, Math.sin(a+0.4)*16); } }
+                if(s.body === 'spiked') { for(let i=0; i<8; i++) { let a = (i/8)*Math.PI*2; pctx.lineTo(Math.cos(a)*22, Math.sin(a)*22); pctx.lineTo(Math.cos(a+0.4)*18, Math.sin(a+0.4)*18); } }
                 else { pctx.arc(0, 0, 18, 0, Math.PI*2); }
                 pctx.fillStyle = s.color; pctx.fill(); pctx.restore();
             });
@@ -219,23 +227,23 @@
             const input = document.getElementById('redeemInput').value.trim();
             const msg = document.getElementById('redeemMsg');
             if (input === '2manycoins') {
-                if (localStorage.getItem('redeemed_2many')) { msg.style.color = '#ff5252'; msg.innerText = "Used!"; }
-                else { totalCoins += 500000; localStorage.setItem('sb_coins', totalCoins); localStorage.setItem('redeemed_2many', 'true'); msg.style.color = '#00e676'; msg.innerText = "500k Added!"; document.getElementById('menu-coins').innerText = `Coins: ${totalCoins}`; }
-            } else { msg.style.color = '#ff5252'; msg.innerText = "Invalid."; }
+                if (localStorage.getItem('redeemed_2many')) { msg.style.color = '#ff5252'; msg.innerText = "Already redeemed!"; }
+                else { totalCoins += 500000; localStorage.setItem('sb_coins', totalCoins); localStorage.setItem('redeemed_2many', 'true'); msg.style.color = '#00e676'; msg.innerText = "500,000 Coins added!"; document.getElementById('menu-coins').innerText = `Coins: ${totalCoins}`; }
+            } else { msg.style.color = '#ff5252'; msg.innerText = "Invalid code."; }
             document.getElementById('redeemInput').value = "";
         };
 
-        // POLISHED: Refined Rendering Engine
         function renderSword(c, x, y, s, angle, bladeCol, hiltCol, type = 'standard') {
             c.save(); c.translate(x, y); c.rotate(angle);
             const scale = s;
             const grad = c.createLinearGradient(10*scale, 0, 100*scale, 0);
             grad.addColorStop(0, bladeCol); grad.addColorStop(0.5, '#fff'); grad.addColorStop(1, bladeCol);
-            
             c.fillStyle = grad; c.strokeStyle = '#000'; c.lineWidth = 2 * scale;
             c.beginPath();
             if (type === 'heavy') {
                 c.moveTo(10*scale, -18*scale); c.lineTo(95*scale, -15*scale); c.lineTo(110*scale, 0); c.lineTo(95*scale, 15*scale); c.lineTo(10*scale, 18*scale);
+            } else if (type === 'light') {
+                c.moveTo(15*scale, -6*scale); c.lineTo(55*scale, -3*scale); c.lineTo(65*scale, 0); c.lineTo(55*scale, 3*scale); c.lineTo(15*scale, 6*scale);
             } else if (type === 'long') {
                 c.moveTo(15*scale, -4*scale); c.lineTo(120*scale, -4*scale); c.lineTo(130*scale, 0); c.lineTo(120*scale, 4*scale); c.lineTo(15*scale, 4*scale);
             } else if (type === 'axe') {
@@ -264,23 +272,25 @@
             id: 'p', x: WORLD_SIZE/2, y: WORLD_SIZE/2, radius: 30, hp: 150, maxHp: 150,
             color: '#2196f3', name: "Player", speed: 8, angle: 0, isAttacking: false, 
             swingProgress: 0, hitList: new Set(), dashTimer: 0, dashCooldown: 0, dashAngle: 0,
-            kx: 0, ky: 0, stunTimer: 0, xp: 0, tier: 1, scale: 1, isPlayer: true, kills: 0, trail: []
+            kx: 0, ky: 0, stunTimer: 0, xp: 0, totalXp: 0, nextLevel: 100, tier: 1, scale: 1, isPlayer: true, kills: 0, coins: 0, trail: []
         };
 
         function spawnBot() {
             const botKey = Object.keys(skins)[Math.floor(Math.random() * 20)];
             const s = skins[botKey];
             bots.push({
-                id: Math.random().toString(36), x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE,
+                id: Math.random().toString(36).substr(2, 9), x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE,
                 radius: 30, hp: 100 * botDifficulty, maxHp: 100 * botDifficulty, color: s.color, name: "Bot",
-                speed: 4.2, angle: 0, isAttacking: false, swingProgress: 0, hitList: new Set(), 
-                kx: 0, ky: 0, stunTimer: 0, tier: 1, scale: 1, isPlayer: false, dashTimer: 0,
-                swordColor: s.sword, hiltColor: s.hilt, weaponType: s.type, bodyStyle: s.body, attackCooldown: 0, coins: 100, trail: []
+                speed: 4.2, angle: Math.random()*Math.PI*2, isAttacking: false, swingProgress: 0, hitList: new Set(), 
+                kx: 0, ky: 0, stunTimer: 0, tier: 1, scale: 1, isPlayer: false, xp: 0, nextLevel: 100, 
+                dashTimer: 0, hidden: false, wanderAngle: Math.random()*Math.PI*2, wanderTime: 0, trail: [],
+                swordColor: s.sword, hiltColor: s.hilt, weaponType: s.type, bodyStyle: s.body, attackCooldown: 0, coins: 100
             });
         }
 
         document.getElementById('startBtn').onclick = () => {
-            player.name = document.getElementById('username').value || "Player";
+            player.name = document.getElementById('username').value.trim() || "Player";
+            document.getElementById('ui-name-static').innerText = player.name;
             currentTheme = themes[document.getElementById('worldSelect').value];
             const s = skins[selectedSkinName];
             player.color = s.color; player.swordColor = s.sword; player.hiltColor = s.hilt; 
@@ -293,20 +303,20 @@
 
         function resetPlayer() {
             player.x = WORLD_SIZE/2; player.y = WORLD_SIZE/2; player.hp = 150; player.maxHp = 150; player.xp = 0; player.tier = 1;
-            player.scale = 1; player.radius = 30; player.kills = 0; kills = 0; sessionCoins = 0;
+            player.scale = 1; player.radius = 30; player.nextLevel = 100; player.kills = 0; kills = 0; sessionCoins = 0;
             gameOverScreen.classList.remove('show'); setTimeout(() => { if(!gameActive) gameOverScreen.style.display = 'none'; }, 800);
         }
 
         document.getElementById('respawnBtn').onclick = () => { resetPlayer(); gameActive = true; };
         document.getElementById('menuBtn').onclick = () => location.reload();
 
-        function spawnGem() { xpGems.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, val: 15, isCoin: Math.random()<0.1 }); }
+        function spawnGem() { xpGems.push({ x: Math.random()*WORLD_SIZE, y: Math.random()*WORLD_SIZE, val: 15, isCoin: Math.random()<0.1, size: 6 }); }
         function addDamageText(x, y, text, color) { damageTexts.push({ x, y, text, color, life: 1.0, vx: (Math.random()-0.5)*2, vy: -2 }); }
 
         joyBase.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; joyState.active = true; joyState.id = t.identifier; updateJoy(t); e.preventDefault(); }, {passive: false});
         window.addEventListener('touchmove', (e) => { if (!joyState.active) return; for(let t of e.changedTouches) if(t.identifier === joyState.id) updateJoy(t); }, {passive: false});
         function updateJoy(t){ const r = joyBase.getBoundingClientRect(); const dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2); const dist = Math.min(50, Math.hypot(dx, dy)), a = Math.atan2(dy, dx); joyState.x = (Math.cos(a)*dist)/50; joyState.y = (Math.sin(a)*dist)/50; joyStick.style.transform = `translate(${joyState.x*30}px, ${joyState.y*30}px)`; }
-        window.addEventListener('touchend', (e) => { for(let t of e.changedTouches) if(t.identifier === joyState.id) joyState.active = false; });
+        window.addEventListener('touchend', (e) => { for(let t of e.changedTouches) if(t.identifier === joyState.id) { joyState.active = false; joyStick.style.transform = 'none'; } });
         
         document.getElementById('atk-btn').ontouchstart = (e) => { e.preventDefault(); if(!player.isAttacking && gameActive && player.stunTimer <= 0) { player.isAttacking = true; player.swingProgress = 0; player.hitList.clear(); }};
         document.getElementById('dash-btn').ontouchstart = (e) => { e.preventDefault(); if(player.dashCooldown <= 0 && gameActive) { player.dashTimer = 18; player.dashCooldown = 65; player.dashAngle = player.angle; }};
@@ -331,7 +341,6 @@
             if(e.bodyStyle === 'spiked') { for(let i=0; i<8; i++) { let a = (i/8)*Math.PI*2; ctx.lineTo(Math.cos(a)*e.radius*1.2, Math.sin(a)*e.radius*1.2); ctx.lineTo(Math.cos(a+0.4)*e.radius, Math.sin(a+0.4)*e.radius); } }
             else { ctx.arc(0, 0, e.radius, 0, Math.PI*2); }
             ctx.fillStyle = e.color; ctx.fill(); ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 4; ctx.stroke();
-            // POLISHED: Gloss effect
             ctx.beginPath(); ctx.arc(-e.radius*0.3, -e.radius*0.3, e.radius*0.2, 0, Math.PI*2); ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.fill();
             ctx.restore();
         }
@@ -365,19 +374,20 @@
             });
 
             bots.forEach((bot, idx) => {
-                // FIXED: AI Recovery - No longer freezes when knocked back
                 if (bot.stunTimer <= 0) {
                     const dist = Math.hypot(player.x-bot.x, player.y-bot.y);
-                    if (gameActive && dist < 500) {
+                    if (gameActive && dist < 600) {
                         bot.angle = Math.atan2(player.y-bot.y, player.x-bot.x);
                         bot.x += Math.cos(bot.angle)*bot.speed; bot.y += Math.sin(bot.angle)*bot.speed;
                         if (dist < 120 && !bot.isAttacking && bot.attackCooldown <= 0) { bot.isAttacking = true; bot.attackCooldown = 60; bot.hitList.clear(); }
+                    } else {
+                        if(bot.wanderTime <= 0) { bot.wanderAngle = Math.random()*Math.PI*2; bot.wanderTime = 60 + Math.random()*120; }
+                        bot.x += Math.cos(bot.wanderAngle)*2.5; bot.y += Math.sin(bot.wanderAngle)*2.5; bot.angle = bot.wanderAngle; bot.wanderTime--;
                     }
-                } else {
-                    bot.stunTimer--; // Ensure stun state actually ends
-                }
+                } else { bot.stunTimer--; } // FIXED: recovery always ticks down
                 if (bot.attackCooldown > 0) bot.attackCooldown--;
                 bot.x += bot.kx; bot.y += bot.ky; bot.kx *= 0.85; bot.ky *= 0.85;
+                bot.x = Math.max(0, Math.min(WORLD_SIZE, bot.x)); bot.y = Math.max(0, Math.min(WORLD_SIZE, bot.y));
                 if (bot.hp <= 0) { bots.splice(idx, 1); spawnBot(); }
             });
 
@@ -385,11 +395,13 @@
                 const ent = entities.find(e => Math.hypot(e.x-g.x, e.y-g.y) < e.radius+20);
                 if (ent) { 
                     if(g.isCoin && ent.isPlayer) { sessionCoins += 10; totalCoins += 10; localStorage.setItem('sb_coins', totalCoins); }
-                    else ent.xp += 20; 
+                    else { ent.xp += 20; if(ent.xp >= ent.nextLevel) { ent.tier++; ent.xp -= ent.nextLevel; ent.nextLevel *= 1.8; ent.scale += 0.35; ent.radius = 30*ent.scale; ent.maxHp += 40; ent.hp = ent.maxHp; } }
                     xpGems.splice(i, 1); spawnGem(); 
                 }
             });
-            for(let d of damageTexts) { d.y += d.vy; d.life -= 0.02; }
+            for(let i=damageTexts.length-1; i>=0; i--) { damageTexts[i].y += damageTexts[i].vy; damageTexts[i].life -= 0.02; if(damageTexts[i].life <= 0) damageTexts.splice(i,1); }
+            const ranked = [player, ...bots].sort((a,b)=>b.coins-a.coins).slice(0, 5);
+            lbList.innerHTML = ranked.map((e,i)=>`<div style="${e.id==='p'?'color:var(--primary);font-weight:900;':''}">#${i+1} ${e.name} - ${Math.floor(e.coins)}</div>`).join('');
         }
 
         function draw() {
@@ -401,13 +413,13 @@
             bots.forEach(b => drawBody(b, b.x, b.y));
             if (gameActive) drawBody(player, player.x, player.y);
             bushes.forEach(b => { ctx.fillStyle = currentTheme.bush; b.parts.forEach(p => { ctx.beginPath(); ctx.arc(b.x+p.ox, b.y+p.oy, p.r, 0, Math.PI*2); ctx.fill(); }); });
-            damageTexts.forEach(d => { ctx.globalAlpha = d.life; ctx.fillStyle = d.color; ctx.font = "bold 20px Arial"; ctx.fillText(d.text, d.x, d.y); });
+            damageTexts.forEach(d => { ctx.save(); ctx.globalAlpha = d.life; ctx.fillStyle = d.color; ctx.font = "bold 24px Arial"; ctx.textAlign = "center"; ctx.fillText(d.text, d.x, d.y); ctx.restore(); });
             ctx.restore();
             if (gameActive) {
-                document.getElementById('xp-display').innerText = `Tier ${player.tier}: ${player.xp}/100`;
+                document.getElementById('xp-display').innerText = `Tier ${player.tier}: ${Math.floor(player.xp)} / ${Math.floor(player.nextLevel)}`;
                 document.getElementById('score').innerText = "Kills: " + kills;
                 document.getElementById('ingame-coins').innerText = "Coins: " + sessionCoins;
-                miniCtx.clearRect(0,0,150,150); miniCtx.fillStyle="#00e676"; miniCtx.fillRect(player.x/40, player.y/40, 4, 4);
+                miniCtx.clearRect(0,0,150,150); miniCtx.fillStyle="#00e676"; miniCtx.fillRect(player.x*(150/WORLD_SIZE), player.y*(150/WORLD_SIZE), 5, 5);
             }
             requestAnimationFrame(draw);
         }
@@ -417,8 +429,7 @@
             for(let p=0; p<4; p++) parts.push({ ox: (Math.random()-0.5)*150, oy: (Math.random()-0.5)*150, r: 60+Math.random()*40 });
             bushes.push({ x: bx, y: by, parts: parts });
         }
-        for(let i=0; i<15; i++) spawnBot();
-        for(let i=0; i<100; i++) spawnGem();
+        for(let i=0; i<15; i++) spawnBot(); for(let i=0; i<100; i++) spawnGem();
         updateShopUI(); draw();
         window.onresize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
     </script>
