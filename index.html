@@ -159,7 +159,7 @@
         const joyState = { x: 0, y: 0, active: false, id: null };
         const WORLD_SIZE = 6000; 
         const camera = { x: WORLD_SIZE/2, y: WORLD_SIZE/2, zoom: 0.8 };
-        const bushes = [], bots = [], xpGems = [], damageTexts = [];
+        const bushes = [], bots = [], xpGems = [], damageTexts = [], dashAfterimages = [];
         let menuCamAngle = 0;
 
         let totalCoins = parseInt(localStorage.getItem('sb_coins')) || 0;
@@ -202,73 +202,40 @@
                 item.innerHTML += `<div style="font-size:12px; color:var(--accent); font-weight:bold; margin-top:5px;">${isOwned ? (isSelected ? 'EQUIPPED' : 'OWNED') : s.price + ' Coins'}</div>`;
                 
                 item.onclick = () => {
-                    if (isOwned) { 
-                        selectedSkinName = name; 
-                        localStorage.setItem('sb_selected', name); 
-                    } else if (totalCoins >= s.price) { 
-                        totalCoins -= s.price; 
-                        ownedSkins.push(name); 
-                        selectedSkinName = name; 
-                        localStorage.setItem('sb_coins', totalCoins); 
-                        localStorage.setItem('sb_owned', JSON.stringify(ownedSkins)); 
-                        localStorage.setItem('sb_selected', name); 
+                    if (isOwned) { selectedSkinName = name; localStorage.setItem('sb_selected', name); }
+                    else if (totalCoins >= s.price) { 
+                        totalCoins -= s.price; ownedSkins.push(name); selectedSkinName = name; 
+                        localStorage.setItem('sb_coins', totalCoins); localStorage.setItem('sb_owned', JSON.stringify(ownedSkins)); localStorage.setItem('sb_selected', name); 
                     }
                     updateShopUI();
                 };
-                
                 grid.appendChild(item);
-                
-                // Draw skin preview
                 const pctx = pcvs.getContext('2d');
-                pctx.clearRect(0,0,80,80);
-                pctx.save();
-                pctx.translate(40, 40);
-                // Draw Sword
-                renderSword(pctx, 15, 0, 0.6, -Math.PI/4, s.sword, s.hilt, true);
-                // Draw Body
-                pctx.beginPath(); pctx.arc(0, 0, 18, 0, Math.PI*2);
-                pctx.fillStyle = s.color; pctx.fill();
+                pctx.save(); pctx.translate(40, 40);
+                renderSword(pctx, 15, 0, 0.6, -Math.PI/4, s.sword, s.hilt);
+                pctx.beginPath(); pctx.arc(0, 0, 18, 0, Math.PI*2); pctx.fillStyle = s.color; pctx.fill();
                 pctx.strokeStyle = "rgba(0,0,0,0.3)"; pctx.lineWidth = 2; pctx.stroke();
                 pctx.restore();
             });
         }
 
-        function renderSword(c, x, y, s, angle, bladeCol, hiltCol, isPreview = false) {
+        function renderSword(c, x, y, s, angle, bladeCol, hiltCol) {
             c.save();
             c.translate(x, y);
             c.rotate(angle);
             const scale = s;
-            
-            c.fillStyle = bladeCol; 
-            c.strokeStyle = '#000'; 
-            c.lineWidth = 1.5 * scale;
+            c.fillStyle = bladeCol; c.strokeStyle = '#000'; c.lineWidth = 1.5 * scale;
             c.beginPath();
-            c.moveTo(15 * scale, -11 * scale); 
-            c.lineTo(85 * scale, -6 * scale); 
-            c.lineTo(100 * scale, 0);
-            c.lineTo(85 * scale, 6 * scale); 
-            c.lineTo(15 * scale, 11 * scale); 
-            c.closePath(); 
-            c.fill(); 
-            c.stroke();
-
-            c.fillStyle = hiltCol; 
-            c.fillRect(10 * scale, -15 * scale, 8 * scale, 30 * scale);
+            c.moveTo(15 * scale, -11 * scale); c.lineTo(85 * scale, -6 * scale); c.lineTo(100 * scale, 0);
+            c.lineTo(85 * scale, 6 * scale); c.lineTo(15 * scale, 11 * scale); c.closePath(); 
+            c.fill(); c.stroke();
+            c.fillStyle = hiltCol; c.fillRect(10 * scale, -15 * scale, 8 * scale, 30 * scale);
             c.strokeRect(10 * scale, -15 * scale, 8 * scale, 30 * scale);
-
-            c.fillStyle = '#5D4037'; 
-            c.fillRect(-10 * scale, -4 * scale, 20 * scale, 8 * scale);
+            c.fillStyle = '#5D4037'; c.fillRect(-10 * scale, -4 * scale, 20 * scale, 8 * scale);
             c.strokeRect(-10 * scale, -4 * scale, 20 * scale, 8 * scale);
-            
-            c.fillStyle = hiltCol;
-            c.beginPath(); c.arc(-10 * scale, 0, 6 * scale, 0, Math.PI * 2); c.fill();
-            c.stroke();
-
+            c.fillStyle = hiltCol; c.beginPath(); c.arc(-10 * scale, 0, 6 * scale, 0, Math.PI * 2); c.fill(); c.stroke();
             c.restore();
         }
-
-        document.getElementById('openShopBtn').onclick = () => { menu.style.display = 'none'; shopMenu.style.display = 'flex'; updateShopUI(); };
-        document.getElementById('closeShopBtn').onclick = () => { shopMenu.style.display = 'none'; menu.style.display = 'flex'; };
 
         const themes = {
             grass: { bg: '#235e27', sec: '#1d4d20', gem: '#ffd700', bush: 'rgba(25, 80, 25, 0.7)', bush2: 'rgba(15, 50, 15, 0.85)' },
@@ -337,13 +304,11 @@
         function resolveCollision(a, b) { if (a.dashTimer > 0 || b.dashTimer > 0) return; const dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy), min = a.radius + b.radius; if (dist < min && dist > 0) { const overlap = (min - dist) / 2; a.x -= (dx/dist)*overlap; a.y -= (dy/dist)*overlap; b.x += (dx/dist)*overlap; b.y += (dy/dist)*overlap; }}
         
         function checkStealth(ent) { 
-            ent.hidden = false; 
-            ent.currentBush = null;
+            ent.hidden = false; ent.currentBush = null;
             for(let b of bushes) { 
                 for(let p of b.parts) { 
                     if(Math.hypot(ent.x - (b.x + p.ox), ent.y - (b.y + p.oy)) < p.r * 0.95) { 
-                        ent.hidden = true; 
-                        ent.currentBush = b.id;
+                        ent.hidden = true; ent.currentBush = b.id;
                         if(ent.isPlayer) bushOverlay.style.opacity = "1";
                         return; 
                     }
@@ -352,56 +317,18 @@
             if(ent.isPlayer) bushOverlay.style.opacity = "0";
         }
 
-        function drawMinimap() {
-            miniCtx.clearRect(0, 0, miniSize, miniSize);
-            const scale = miniSize / WORLD_SIZE;
-            bots.forEach(bot => { 
-                if (bot.hidden && player.currentBush !== bot.currentBush) return; 
-                miniCtx.fillStyle = 'rgba(255, 23, 68, 0.8)'; 
-                miniCtx.fillRect(bot.x * scale, bot.y * scale, 3, 3); 
-            });
-            miniCtx.fillStyle = '#00e676'; miniCtx.beginPath(); miniCtx.arc(player.x * scale, player.y * scale, 4, 0, Math.PI * 2); miniCtx.fill();
-            miniCtx.strokeStyle = 'rgba(255,255,255,0.2)';
-            const vw = (w / camera.zoom) * scale, vh = (h / camera.zoom) * scale;
-            miniCtx.strokeRect((camera.x * scale) - vw/2, (camera.y * scale) - vh/2, vw, vh);
-        }
-
-        function drawBody(e, x, y) {
-            let alpha = 1.0;
-            if (e.hidden) {
-                if (e.isPlayer || player.currentBush === e.currentBush) {
-                    alpha = 0.5; // Always seen in high opacity "ghost" mode even through layers
-                } else {
-                    return; 
-                }
+        function drawBody(e, x, y, ghostAlpha = null) {
+            let alpha = ghostAlpha !== null ? ghostAlpha : 1.0;
+            if (ghostAlpha === null && e.hidden) {
+                if (e.isPlayer || player.currentBush === e.currentBush) alpha = 0.5;
+                else return; 
             }
             
-            if (e.isAttacking && e.trail.length > 1) {
-                ctx.save();
-                ctx.globalAlpha = alpha * 0.3;
-                ctx.beginPath(); ctx.moveTo(e.trail[0].x, e.trail[0].y);
-                for (let i = 1; i < e.trail.length; i++) ctx.lineTo(e.trail[i].x, e.trail[i].y);
-                ctx.strokeStyle = "rgba(255,255,255,0.4)";
-                ctx.lineWidth = 25 * e.scale; ctx.lineCap = 'round'; ctx.stroke();
-                ctx.restore();
-            }
-
-            ctx.save(); ctx.translate(x, y);
-            ctx.globalAlpha = alpha;
-            
-            if (e.stunTimer > 0) { ctx.shadowBlur = 15; ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; }
-            
-            ctx.fillStyle = "white"; ctx.font = `bold ${14 * e.scale}px Arial`; ctx.textAlign = "center";
-            ctx.fillText(e.name, 0, -55 * e.scale);
-            const barW = 60 * e.scale;
-            ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-barW/2, -42 * e.scale, barW, 8 * e.scale);
-            ctx.fillStyle = e.isPlayer ? '#00e676' : '#ff1744';
-            ctx.fillRect(-barW/2, -40 * e.scale, barW * (e.hp/e.maxHp), 4 * e.scale);
-            
+            // Swing Logic: 120 degrees arc = approx 1.05 radians to -1.05 radians
             let swingAngle = 0.7;
             const pivotDist = e.radius * 0.85;
             if (e.isAttacking) {
-                swingAngle = 1.5 - (e.swingProgress * 3.0); 
+                swingAngle = 1.05 - (e.swingProgress * 2.1); 
                 e.swingProgress += (0.16 / e.scale); 
                 const tipDist = 100 * e.scale;
                 const worldTipX = x + Math.cos(e.angle + swingAngle) * (pivotDist + tipDist);
@@ -410,6 +337,24 @@
                 if(e.swingProgress >= 1) { e.isAttacking = false; e.swingProgress = 0; e.hitList.clear(); e.trail = []; }
             }
 
+            if (e.isAttacking && e.trail.length > 1 && ghostAlpha === null) {
+                ctx.save(); ctx.globalAlpha = alpha * 0.3; ctx.beginPath(); ctx.moveTo(e.trail[0].x, e.trail[0].y);
+                for (let i = 1; i < e.trail.length; i++) ctx.lineTo(e.trail[i].x, e.trail[i].y);
+                ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = 25 * e.scale; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
+            }
+
+            ctx.save(); ctx.translate(x, y); ctx.globalAlpha = alpha;
+            if (e.stunTimer > 0 && ghostAlpha === null) { ctx.shadowBlur = 15; ctx.shadowColor = "rgba(255, 0, 0, 0.8)"; }
+            
+            if (ghostAlpha === null) {
+                ctx.fillStyle = "white"; ctx.font = `bold ${14 * e.scale}px Arial`; ctx.textAlign = "center";
+                ctx.fillText(e.name, 0, -55 * e.scale);
+                const barW = 60 * e.scale;
+                ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-barW/2, -42 * e.scale, barW, 8 * e.scale);
+                ctx.fillStyle = e.isPlayer ? '#00e676' : '#ff1744';
+                ctx.fillRect(-barW/2, -40 * e.scale, barW * (e.hp/e.maxHp), 4 * e.scale);
+            }
+            
             const sx = Math.cos(e.angle + swingAngle) * pivotDist;
             const sy = Math.sin(e.angle + swingAngle) * pivotDist;
             renderSword(ctx, sx, sy, e.scale, e.angle + swingAngle, e.swordColor, e.hiltColor);
@@ -437,6 +382,10 @@
                 let speed = (player.speed - (player.tier*0.05));
                 if (player.dashTimer > 0) {
                     player.x += Math.cos(player.dashAngle) * 18; player.y += Math.sin(player.dashAngle) * 18; player.dashTimer--;
+                    // Add afterimage
+                    if (player.dashTimer % 3 === 0) {
+                        dashAfterimages.push({ x: player.x, y: player.y, angle: player.angle, scale: player.scale, color: player.color, swordColor: player.swordColor, hiltColor: player.hiltColor, radius: player.radius, life: 1.0 });
+                    }
                 } else if (joyState.active && player.stunTimer <= 0) { 
                     player.x += joyState.x*speed; player.y += joyState.y*speed; player.angle = Math.atan2(joyState.y, joyState.x); 
                 }
@@ -448,23 +397,29 @@
                 checkStealth(player);
                 player.coins = sessionCoins;
             }
+            
+            // Afterimages life cycle
+            for(let i = dashAfterimages.length-1; i >= 0; i--) {
+                dashAfterimages[i].life -= 0.05;
+                if(dashAfterimages[i].life <= 0) dashAfterimages.splice(i, 1);
+            }
+
             entities.forEach(atk => {
                 if (!atk.isAttacking) return;
                 entities.forEach(vic => {
                     if (atk.id === vic.id || atk.hitList.has(vic.id)) return;
                     const dist = Math.hypot(atk.x-vic.x, atk.y-vic.y);
-                    if (dist < (145 * atk.scale) + vic.radius) {
+                    if (dist < (135 * atk.scale) + vic.radius) { // Slightly smaller range due to shorter swing
                         let dmg = Math.floor(22 * atk.scale); vic.hp -= dmg;
                         atk.hitList.add(vic.id);
                         const knockAngle = Math.atan2(vic.y - atk.y, vic.x - atk.x);
                         vic.kx = Math.cos(knockAngle) * 22; vic.ky = Math.sin(knockAngle) * 22;
-                        vic.stunTimer = 12;
-                        vic.isAttacking = false; vic.swingProgress = 0; vic.trail = [];
+                        vic.stunTimer = 12; vic.isAttacking = false; vic.swingProgress = 0; vic.trail = [];
                         addDamageText(vic.x, vic.y, dmg, atk.isPlayer ? "#ffeb3b" : "#ff5252");
                         if (vic.hp <= 0) { 
                             atk.kills++; atk.xp += 100*vic.tier; 
                             if(atk.isPlayer) { kills++; sessionCoins += 50 * vic.tier; addDamageText(vic.x, vic.y, `+${50*vic.tier} Coins`, "#ffd700"); }
-                            else { atk.coins += 50 * vic.tier; }
+                            else atk.coins += 50 * vic.tier;
                         }
                     }
                 });
@@ -527,18 +482,17 @@
             
             xpGems.forEach(g => { ctx.beginPath(); ctx.arc(g.x, g.y, g.size, 0, Math.PI*2); ctx.fillStyle = g.isCoin ? "#ffd700" : currentTheme.gem; ctx.fill(); if(g.isCoin) { ctx.strokeStyle = "#b8860b"; ctx.lineWidth = 2; ctx.stroke(); } });
             
-            // 1. Draw Non-Hidden Characters (Normal Layer)
+            // Draw Afterimages
+            dashAfterimages.forEach(img => drawBody(img, img.x, img.y, img.life * 0.3));
+
             bots.forEach(b => { if(!b.hidden) drawBody(b, b.x, b.y); });
             if (gameActive && player.hp > 0 && !player.hidden) drawBody(player, player.x, player.y);
 
-            // 2. Draw Bushes (Mid Layer)
             bushes.forEach(b => {
                 ctx.fillStyle = b.type === 1 ? currentTheme.bush : currentTheme.bush2;
                 b.parts.forEach(p => { ctx.beginPath(); ctx.arc(b.x+p.ox, b.y+p.oy, p.r, 0, Math.PI*2); ctx.fill(); });
             });
 
-            // 3. Draw Hidden Characters (Top Ghost Layer)
-            // This ensures characters in bushes are visible ON TOP of all bush layers with reduced alpha.
             bots.forEach(b => { if(b.hidden) drawBody(b, b.x, b.y); });
             if (gameActive && player.hp > 0 && player.hidden) drawBody(player, player.x, player.y);
 
